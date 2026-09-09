@@ -22,6 +22,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var transcript: TextView
     private var recognizer: SpeechRecognizer? = null
     private var tts: TextToSpeech? = null
+    private val assistant = AssistantClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,7 +52,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             setPadding(0, 32, 0, 32)
         }
         transcript = TextView(this).apply {
-            text = "Tap the button and ask a field question."
+            text = "Tap TALK and ask anything."
             textSize = 20f
             setTextColor(0xFFFFFFFF.toInt())
             gravity = Gravity.CENTER
@@ -66,7 +67,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             text = "START HANDS-FREE MODE"
             setOnClickListener {
                 ContextCompat.startForegroundService(this@MainActivity, Intent(this@MainActivity, WakeWordService::class.java))
-                status.text = "Hands-free service running"
+                status.text = "Hands-free service running — wake word engine is next"
             }
         }
         root.addView(title)
@@ -100,10 +101,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 override fun onResults(results: Bundle?) {
                     val words = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                     transcript.text = words.ifBlank { "No speech detected" }
-                    if (words.isNotBlank()) {
-                        status.text = "Voice capture works — GPT connection is next"
-                        speak("I heard: $words")
-                    }
+                    if (words.isNotBlank()) askAssistant(words)
                 }
                 override fun onPartialResults(partialResults: Bundle?) {}
                 override fun onEvent(eventType: Int, params: Bundle?) {}
@@ -112,6 +110,21 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.US.toLanguageTag())
             })
+        }
+    }
+
+    private fun askAssistant(question: String) {
+        status.text = "Asking Field Assistant…"
+        assistant.ask(question) { result ->
+            runOnUiThread {
+                result.onSuccess { reply ->
+                    transcript.text = reply
+                    status.text = "Ready"
+                    speak(reply)
+                }.onFailure { error ->
+                    status.text = error.message ?: "Assistant connection failed"
+                }
+            }
         }
     }
 
