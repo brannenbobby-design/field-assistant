@@ -11,11 +11,9 @@ android {
         applicationId = "com.brannenservices.fieldassistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
 
-        // Point this at a small backend that holds the OpenAI API key.
-        // Never put the OpenAI secret key in this Android project.
         buildConfigField("String", "ASSISTANT_BACKEND_URL", "\"\"")
     }
 
