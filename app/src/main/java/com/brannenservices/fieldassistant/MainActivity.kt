@@ -54,15 +54,15 @@ class MainActivity : AppCompatActivity() {
 
         val setupAccessibility = Button(this).apply {
             text = "ENABLE ACCESSIBILITY CONTROL"
-            setOnClickListener {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            }
+            setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         }
 
-        val openVoice = Button(this).apply {
-            text = "OPEN CHATGPT VOICE"
+        val testTextMode = Button(this).apply {
+            text = "TEST CHATGPT TEXT MODE"
             textSize = 20f
-            setOnClickListener { openChatGptVoice() }
+            setOnClickListener {
+                sendTextToChatGpt("Reply with exactly: Field Assistant text mode is working.")
+            }
         }
 
         handsFreeButton = Button(this).apply {
@@ -73,12 +73,12 @@ class MainActivity : AppCompatActivity() {
         root.addView(title)
         root.addView(status)
         root.addView(setupAccessibility)
-        root.addView(openVoice)
+        root.addView(testTextMode)
         root.addView(handsFreeButton)
         setContentView(root)
     }
 
-    private fun openChatGptVoice() {
+    private fun sendTextToChatGpt(message: String) {
         if (!isAccessibilityEnabled()) {
             status.text = "Enable Field Assistant Control first"
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -87,7 +87,7 @@ class MainActivity : AppCompatActivity() {
 
         getSharedPreferences(FieldAccessibilityService.PREFS, MODE_PRIVATE)
             .edit()
-            .putBoolean(FieldAccessibilityService.KEY_START_VOICE, true)
+            .putString(FieldAccessibilityService.KEY_PENDING_TEXT, message)
             .apply()
 
         val launch = packageManager.getLaunchIntentForPackage(FieldAccessibilityService.CHATGPT_PACKAGE)
@@ -97,7 +97,7 @@ class MainActivity : AppCompatActivity() {
         }
         launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(launch)
-        status.text = "Opening ChatGPT voice…"
+        status.text = "Sending through ChatGPT text chat…"
     }
 
     private fun toggleHandsFree() {
