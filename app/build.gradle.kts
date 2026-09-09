@@ -11,8 +11,8 @@ android {
         applicationId = "com.brannenservices.fieldassistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.2.0-photo-rescue"
+        versionCode = 7
+        versionName = "0.4.0-photo-rescue"
     }
 
     buildTypes {
