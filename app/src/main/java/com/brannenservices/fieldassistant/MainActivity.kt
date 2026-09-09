@@ -20,8 +20,10 @@ import java.util.Locale
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var status: TextView
     private lateinit var transcript: TextView
+    private lateinit var handsFreeButton: Button
     private var recognizer: SpeechRecognizer? = null
     private var tts: TextToSpeech? = null
+    private var handsFreeRunning = false
     private val assistant = AssistantClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,19 +65,35 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             textSize = 22f
             setOnClickListener { listenOnce() }
         }
-        val wake = Button(this).apply {
+        handsFreeButton = Button(this).apply {
             text = "START HANDS-FREE MODE"
-            setOnClickListener {
-                ContextCompat.startForegroundService(this@MainActivity, Intent(this@MainActivity, WakeWordService::class.java))
-                status.text = "Hands-free service running — wake word engine is next"
-            }
+            setOnClickListener { toggleHandsFree() }
         }
         root.addView(title)
         root.addView(status)
         root.addView(transcript)
         root.addView(talk)
-        root.addView(wake)
+        root.addView(handsFreeButton)
         setContentView(root)
+    }
+
+    private fun toggleHandsFree() {
+        if (!handsFreeRunning) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                requestMic()
+                status.text = "Microphone permission is required"
+                return
+            }
+            ContextCompat.startForegroundService(this, Intent(this, WakeWordService::class.java))
+            handsFreeRunning = true
+            handsFreeButton.text = "STOP HANDS-FREE MODE"
+            status.text = "Hands-free mode active — safe to lock screen"
+        } else {
+            stopService(Intent(this, WakeWordService::class.java))
+            handsFreeRunning = false
+            handsFreeButton.text = "START HANDS-FREE MODE"
+            status.text = "Hands-free mode stopped"
+        }
     }
 
     private fun requestMic() {
@@ -121,9 +139,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     transcript.text = reply
                     status.text = "Ready"
                     speak(reply)
-                }.onFailure { error ->
-                    status.text = error.message ?: "Assistant connection failed"
-                }
+                }.onFailure { error -> status.text = error.message ?: "Assistant connection failed" }
             }
         }
     }
