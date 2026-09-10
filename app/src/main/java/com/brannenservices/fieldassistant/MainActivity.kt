@@ -26,6 +26,8 @@ class MainActivity : Activity() {
         var lastHitAttack: Int = -1
     )
 
+    private enum class Control { LEFT, RIGHT, JUMP, WHACK }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -64,8 +66,6 @@ class MainActivity : Activity() {
         private var lastFrame = System.nanoTime()
 
         private val flamingos = mutableListOf<Flamingo>()
-
-        private enum class Control { LEFT, RIGHT, JUMP, WHACK }
 
         init {
             resetGame()
@@ -263,7 +263,6 @@ class MainActivity : Activity() {
             val flash = hurtCooldown > 0f && ((hurtCooldown * 12).toInt() % 2 == 0)
             if (flash) return
 
-            // Legs and flip-flops
             paint.color = Color.rgb(242, 181, 133)
             canvas.drawRect(x - 23f, y - 3f, x - 8f, y + 42f, paint)
             canvas.drawRect(x + 8f, y - 3f, x + 23f, y + 42f, paint)
@@ -271,29 +270,24 @@ class MainActivity : Activity() {
             canvas.drawRect(x - 31f, y + 39f, x - 4f, y + 46f, paint)
             canvas.drawRect(x + 4f, y + 39f, x + 31f, y + 46f, paint)
 
-            // Shorts and tank top
             paint.color = Color.rgb(42, 71, 148)
             canvas.drawRect(x - 34f, y - 44f, x + 34f, y + 7f, paint)
             paint.color = Color.WHITE
             canvas.drawRect(x - 31f, y - 110f, x + 31f, y - 44f, paint)
 
-            // Arms
             paint.color = Color.rgb(242, 181, 133)
             canvas.drawRect(x - 44f, y - 102f, x - 29f, y - 48f, paint)
             canvas.drawRect(x + 29f, y - 102f, x + 44f, y - 48f, paint)
 
-            // Head and mullet
             canvas.drawCircle(x, y - 142f, 34f, paint)
             paint.color = Color.rgb(91, 50, 24)
             canvas.drawRect(x - 37f, y - 174f, x + 25f, y - 158f, paint)
             canvas.drawRect(x - 39f, y - 161f, x - 25f, y - 108f, paint)
 
-            // Sunglasses
             paint.color = Color.BLACK
             canvas.drawRect(x - 25f, y - 150f, x - 4f, y - 141f, paint)
             canvas.drawRect(x + 4f, y - 150f, x + 25f, y - 141f, paint)
 
-            // Pool noodle
             paint.strokeWidth = 20f
             paint.strokeCap = Paint.Cap.ROUND
             paint.color = Color.rgb(255, 47, 165)
