@@ -13,9 +13,11 @@ import android.view.View
 import android.view.Window
 import android.view.WindowManager
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
 
 class MainActivity : Activity() {
 
@@ -34,6 +36,14 @@ class MainActivity : Activity() {
         val x: Float,
         val type: PickupType,
         var collected: Boolean = false
+    )
+
+    private enum class HazardType { LAWN_CHAIR, COOLER, SPRINKLER }
+
+    private data class Hazard(
+        val x: Float,
+        val width: Float,
+        val type: HazardType
     )
 
     private enum class ActionControl { JUMP, WHACK }
@@ -83,9 +93,16 @@ class MainActivity : Activity() {
         private var messageText = ""
         private var messageTimer = 0f
         private var bossIntroShown = false
+        private var bossRageShown = false
+
+        private var elapsedTime = 0f
+        private var runPhase = 0f
+        private var shakeTimer = 0f
+        private var shakeStrength = 0f
 
         private val flamingos = mutableListOf<Flamingo>()
         private val pickups = mutableListOf<Pickup>()
+        private val hazards = mutableListOf<Hazard>()
 
         init {
             resetGame()
@@ -126,6 +143,11 @@ class MainActivity : Activity() {
             messageText = ""
             messageTimer = 0f
             bossIntroShown = false
+            bossRageShown = false
+            elapsedTime = 0f
+            runPhase = 0f
+            shakeTimer = 0f
+            shakeStrength = 0f
             joystickPointerId = null
             joystickX = 0f
             joystickY = 0f
@@ -143,13 +165,20 @@ class MainActivity : Activity() {
             pickups += Pickup(1225f, PickupType.COLD_ONE)
             pickups += Pickup(2450f, PickupType.COLD_ONE)
             pickups += Pickup(3600f, PickupType.COLD_ONE)
+
+            hazards.clear()
+            hazards += Hazard(1780f, 115f, HazardType.LAWN_CHAIR)
+            hazards += Hazard(3025f, 100f, HazardType.COOLER)
+            hazards += Hazard(3890f, 120f, HazardType.SPRINKLER)
         }
 
         private fun updateGame(dt: Float) {
+            elapsedTime += dt
             val move = if (abs(joystickX) < 0.14f) 0f else joystickX
             if (move != 0f) {
                 facing = if (move > 0f) 1 else -1
                 playerX = (playerX + move * 420f * dt).coerceIn(55f, worldWidth - 90f)
+                if (playerY >= groundY - 4f) runPhase += dt * (8f + abs(move) * 8f)
             }
 
             velocityY += 1550f * dt
@@ -162,6 +191,8 @@ class MainActivity : Activity() {
             attackTimer = max(0f, attackTimer - dt)
             hurtCooldown = max(0f, hurtCooldown - dt)
             messageTimer = max(0f, messageTimer - dt)
+            shakeTimer = max(0f, shakeTimer - dt)
+            if (shakeTimer <= 0f) shakeStrength = 0f
 
             val playerScreenTarget = width * 0.37f
             val desiredCamera = playerX - playerScreenTarget
@@ -176,7 +207,12 @@ class MainActivity : Activity() {
                 val chaseRange = if (enemy.boss) 760f else 520f
                 if (abs(distance) < chaseRange) {
                     val direction = if (distance > 0f) 1f else -1f
-                    val speed = if (enemy.boss) 110f else 84f
+                    val enraged = enemy.boss && enemy.hp <= enemy.maxHp / 2
+                    val speed = when {
+                        enraged -> 168f
+                        enemy.boss -> 110f
+                        else -> 84f
+                    }
                     enemy.x += direction * speed * dt
                 }
 
@@ -189,13 +225,22 @@ class MainActivity : Activity() {
                         enemy.hitFlash = 0.13f
                         enemy.x += facing * if (enemy.boss) 42f else 78f
                         score += if (enemy.boss) 250 else 100
+                        startShake(if (enemy.boss) 7f else 4f, 0.10f)
                         showMessage(if (enemy.boss) "THAT ACTUALLY HURT IT." else "BONK.", 0.55f)
+
+                        if (enemy.boss && enemy.hp <= enemy.maxHp / 2 && !bossRageShown && enemy.hp > 0) {
+                            bossRageShown = true
+                            showMessage("IT'S GETTING PERSONAL NOW.", 1.6f)
+                        }
+
                         if (enemy.hp <= 0) {
                             score += if (enemy.boss) 1500 else 250
                             showMessage(
-                                if (enemy.boss) "THE LAWN ORNAMENT HAS BEEN DEFEATED." else "FLAMINGO PROBLEM TEMPORARILY SOLVED.",
+                                if (enemy.boss) "THE LAWN ORNAMENT HAS BEEN DEFEATED."
+                                else "FLAMINGO PROBLEM TEMPORARILY SOLVED.",
                                 if (enemy.boss) 1.8f else 0.85f
                             )
+                            if (enemy.boss) startShake(14f, 0.35f)
                         }
                     }
                 }
@@ -206,12 +251,25 @@ class MainActivity : Activity() {
                     playerY > groundY - 95f &&
                     hurtCooldown <= 0f
                 ) {
-                    health = max(0, health - if (enemy.boss) 18 else 10)
-                    hurtCooldown = 0.75f
-                    playerX = (playerX - if (distance > 0f) 90f else -90f)
-                        .coerceIn(55f, worldWidth - 90f)
-                    showMessage("THIS WAS A TERRIBLE PLAN.", 0.85f)
-                    if (health <= 0) gameOver = true
+                    damagePlayer(
+                        amount = if (enemy.boss) 18 else 10,
+                        knockback = if (distance > 0f) -100f else 100f,
+                        message = "THIS WAS A TERRIBLE PLAN."
+                    )
+                }
+            }
+
+            for (hazard in hazards) {
+                val half = hazard.width / 2f
+                val lowEnoughToHit = playerY > groundY - 72f
+                if (abs(playerX - hazard.x) < half + 28f && lowEnoughToHit && hurtCooldown <= 0f) {
+                    val knock = if (playerX < hazard.x) -105f else 105f
+                    val text = when (hazard.type) {
+                        HazardType.LAWN_CHAIR -> "DEFEATED BY PATIO FURNITURE."
+                        HazardType.COOLER -> "THE COOLER WON THAT ROUND."
+                        HazardType.SPRINKLER -> "ATTACKED BY IRRIGATION. CLASSIC FLORIDA."
+                    }
+                    damagePlayer(8, knock, text)
                 }
             }
 
@@ -240,12 +298,33 @@ class MainActivity : Activity() {
             if (bossDefeated && playerX > 4650f) levelWon = true
         }
 
+        private fun damagePlayer(amount: Int, knockback: Float, message: String) {
+            health = max(0, health - amount)
+            hurtCooldown = 0.75f
+            playerX = (playerX + knockback).coerceIn(55f, worldWidth - 90f)
+            startShake(10f, 0.18f)
+            showMessage(message, 0.9f)
+            if (health <= 0) gameOver = true
+        }
+
+        private fun startShake(strength: Float, seconds: Float) {
+            shakeStrength = max(shakeStrength, strength)
+            shakeTimer = max(shakeTimer, seconds)
+        }
+
         private fun showMessage(text: String, seconds: Float) {
             messageText = text
             messageTimer = seconds
         }
 
         private fun drawWorld(canvas: Canvas) {
+            canvas.save()
+            if (shakeTimer > 0f) {
+                val dx = sin((elapsedTime * 83f).toDouble()).toFloat() * shakeStrength
+                val dy = cos((elapsedTime * 67f).toDouble()).toFloat() * shakeStrength * 0.55f
+                canvas.translate(dx, dy)
+            }
+
             val sky = LinearGradient(
                 0f, 0f, 0f, groundY,
                 Color.rgb(42, 174, 224),
@@ -269,17 +348,13 @@ class MainActivity : Activity() {
             canvas.drawRect(0f, groundY + height * 0.07f, width.toFloat(), height.toFloat(), paint)
 
             drawSectionSigns(canvas)
-
-            for (pickup in pickups) {
-                if (!pickup.collected) drawPickup(canvas, pickup)
-            }
-
-            for (enemy in flamingos) {
-                if (enemy.hp > 0) drawFlamingo(canvas, enemy)
-            }
+            for (hazard in hazards) drawHazard(canvas, hazard)
+            for (pickup in pickups) if (!pickup.collected) drawPickup(canvas, pickup)
+            for (enemy in flamingos) if (enemy.hp > 0) drawFlamingo(canvas, enemy)
 
             drawPlayer(canvas)
             drawFinishSign(canvas)
+            canvas.restore()
         }
 
         private fun drawParallaxPalms(canvas: Canvas) {
@@ -356,10 +431,53 @@ class MainActivity : Activity() {
             paint.textAlign = Paint.Align.LEFT
         }
 
+        private fun drawHazard(canvas: Canvas, hazard: Hazard) {
+            val x = hazard.x - cameraX
+            if (x < -180f || x > width + 180f) return
+
+            when (hazard.type) {
+                HazardType.LAWN_CHAIR -> {
+                    paint.style = Paint.Style.STROKE
+                    paint.strokeWidth = 13f
+                    paint.strokeCap = Paint.Cap.ROUND
+                    paint.color = Color.rgb(235, 235, 225)
+                    canvas.drawLine(x - 42f, groundY - 72f, x + 26f, groundY - 18f, paint)
+                    canvas.drawLine(x - 38f, groundY - 70f, x - 48f, groundY + 16f, paint)
+                    canvas.drawLine(x + 25f, groundY - 18f, x + 47f, groundY + 16f, paint)
+                    paint.strokeWidth = 20f
+                    paint.color = Color.rgb(52, 156, 190)
+                    canvas.drawLine(x - 31f, groundY - 62f, x + 18f, groundY - 25f, paint)
+                    paint.style = Paint.Style.FILL
+                }
+
+                HazardType.COOLER -> {
+                    paint.color = Color.rgb(210, 48, 48)
+                    canvas.drawRoundRect(x - 48f, groundY - 62f, x + 48f, groundY + 4f, 10f, 10f, paint)
+                    paint.color = Color.WHITE
+                    canvas.drawRect(x - 52f, groundY - 69f, x + 52f, groundY - 53f, paint)
+                    paint.color = Color.rgb(45, 45, 45)
+                    canvas.drawCircle(x - 28f, groundY + 5f, 8f, paint)
+                    canvas.drawCircle(x + 28f, groundY + 5f, 8f, paint)
+                }
+
+                HazardType.SPRINKLER -> {
+                    paint.color = Color.rgb(65, 70, 72)
+                    canvas.drawRect(x - 28f, groundY - 18f, x + 28f, groundY + 5f, paint)
+                    paint.style = Paint.Style.STROKE
+                    paint.strokeWidth = 7f
+                    paint.color = Color.rgb(90, 190, 235)
+                    val pulse = 8f + sin((elapsedTime * 8f).toDouble()).toFloat() * 5f
+                    canvas.drawArc(x - 68f, groundY - 92f - pulse, x + 68f, groundY + 12f, 200f, 140f, false, paint)
+                    paint.style = Paint.Style.FILL
+                }
+            }
+        }
+
         private fun drawPickup(canvas: Canvas, pickup: Pickup) {
             val x = pickup.x - cameraX
             if (x < -100f || x > width + 100f) return
-            val y = groundY - 58f
+            val bob = sin((elapsedTime * 4f + pickup.x * 0.01f).toDouble()).toFloat() * 7f
+            val y = groundY - 58f + bob
 
             when (pickup.type) {
                 PickupType.COLD_ONE -> {
@@ -381,15 +499,20 @@ class MainActivity : Activity() {
 
         private fun drawPlayer(canvas: Canvas) {
             val x = playerX - cameraX
-            val y = playerY
+            val grounded = playerY >= groundY - 4f
+            val moving = abs(joystickX) >= 0.14f && grounded
+            val bob = if (moving) abs(sin(runPhase.toDouble()).toFloat()) * 6f else 0f
+            val stride = if (moving) sin((runPhase * 1.8f).toDouble()).toFloat() * 12f else 0f
+            val y = playerY - bob
+
             if (hurtCooldown > 0f && ((hurtCooldown * 12).toInt() % 2 == 0)) return
 
             paint.color = Color.rgb(242, 181, 133)
-            canvas.drawRect(x - 23f, y - 3f, x - 8f, y + 42f, paint)
-            canvas.drawRect(x + 8f, y - 3f, x + 23f, y + 42f, paint)
+            canvas.drawRect(x - 23f + stride * 0.35f, y - 3f, x - 8f + stride * 0.35f, y + 42f, paint)
+            canvas.drawRect(x + 8f - stride * 0.35f, y - 3f, x + 23f - stride * 0.35f, y + 42f, paint)
             paint.color = Color.rgb(35, 35, 35)
-            canvas.drawRect(x - 31f, y + 39f, x - 4f, y + 46f, paint)
-            canvas.drawRect(x + 4f, y + 39f, x + 31f, y + 46f, paint)
+            canvas.drawRect(x - 31f + stride * 0.55f, y + 39f, x - 4f + stride * 0.55f, y + 46f, paint)
+            canvas.drawRect(x + 4f - stride * 0.55f, y + 39f, x + 31f - stride * 0.55f, y + 46f, paint)
 
             paint.color = Color.rgb(42, 71, 148)
             canvas.drawRect(x - 34f, y - 44f, x + 34f, y + 7f, paint)
@@ -397,8 +520,9 @@ class MainActivity : Activity() {
             canvas.drawRect(x - 31f, y - 110f, x + 31f, y - 44f, paint)
 
             paint.color = Color.rgb(242, 181, 133)
-            canvas.drawRect(x - 44f, y - 102f, x - 29f, y - 48f, paint)
-            canvas.drawRect(x + 29f, y - 102f, x + 44f, y - 48f, paint)
+            val armSwing = stride * 0.35f
+            canvas.drawRect(x - 44f - armSwing, y - 102f, x - 29f - armSwing, y - 48f, paint)
+            canvas.drawRect(x + 29f + armSwing, y - 102f, x + 44f + armSwing, y - 48f, paint)
             canvas.drawCircle(x, y - 142f, 34f, paint)
 
             paint.color = Color.rgb(91, 50, 24)
@@ -409,19 +533,33 @@ class MainActivity : Activity() {
             canvas.drawRect(x - 25f, y - 150f, x - 4f, y - 141f, paint)
             canvas.drawRect(x + 4f, y - 150f, x + 25f, y - 141f, paint)
 
+            drawPoolNoodle(canvas, x, y)
+        }
+
+        private fun drawPoolNoodle(canvas: Canvas, x: Float, y: Float) {
             paint.strokeWidth = 20f
             paint.strokeCap = Paint.Cap.ROUND
             paint.color = Color.rgb(255, 47, 165)
-            val attackReach = if (attackTimer > 0f) 165f else 72f
-            val startX = x + facing * 25f
-            val endX = x + facing * attackReach
-            canvas.drawLine(
-                startX,
-                y - 92f,
-                endX,
-                y - if (attackTimer > 0f) 105f else 128f,
-                paint
-            )
+
+            val startX = x + facing * 24f
+            val startY = y - 88f
+            if (attackTimer > 0f) {
+                val progress = (1f - attackTimer / 0.20f).coerceIn(0f, 1f)
+                val degrees = if (facing > 0) -70f + progress * 105f else 250f - progress * 105f
+                val radians = Math.toRadians(degrees.toDouble())
+                val reach = 168f
+                val endX = startX + cos(radians).toFloat() * reach
+                val endY = startY + sin(radians).toFloat() * reach
+                canvas.drawLine(startX, startY, endX, endY, paint)
+
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 5f
+                paint.color = Color.argb(130, 255, 255, 255)
+                canvas.drawCircle(endX, endY, 25f, paint)
+                paint.style = Paint.Style.FILL
+            } else {
+                canvas.drawLine(startX, startY, x + facing * 72f, y - 128f, paint)
+            }
         }
 
         private fun drawFlamingo(canvas: Canvas, enemy: Flamingo) {
@@ -429,18 +567,19 @@ class MainActivity : Activity() {
             if (x < -180f || x > width + 180f) return
 
             val scale = if (enemy.boss) 1.55f else 1f
-            val bodyY = groundY - 92f * scale
+            val bob = sin((elapsedTime * (if (enemy.boss) 5f else 3.7f) + enemy.x * 0.008f).toDouble()).toFloat() * 6f
+            val bodyY = groundY - 92f * scale + bob
             val flashing = enemy.hitFlash > 0f
+            val enraged = enemy.boss && enemy.hp <= enemy.maxHp / 2
 
             paint.style = Paint.Style.STROKE
             paint.strokeCap = Paint.Cap.ROUND
             paint.strokeWidth = 13f * scale
-            paint.color = if (flashing) {
-                Color.WHITE
-            } else if (enemy.boss) {
-                Color.rgb(232, 36, 95)
-            } else {
-                Color.rgb(255, 92, 147)
+            paint.color = when {
+                flashing -> Color.WHITE
+                enraged -> Color.rgb(205, 28, 68)
+                enemy.boss -> Color.rgb(232, 36, 95)
+                else -> Color.rgb(255, 92, 147)
             }
 
             canvas.drawOval(
@@ -453,11 +592,13 @@ class MainActivity : Activity() {
             canvas.drawLine(x + 18f * scale, bodyY - 18f * scale, x + 28f * scale, bodyY - 92f * scale, paint)
             canvas.drawCircle(x + 46f * scale, bodyY - 111f * scale, 22f * scale, paint)
             canvas.drawLine(x + 65f * scale, bodyY - 112f * scale, x + 95f * scale, bodyY - 124f * scale, paint)
-            canvas.drawLine(x - 12f * scale, bodyY + 20f * scale, x - 22f * scale, groundY + 28f, paint)
-            canvas.drawLine(x + 12f * scale, bodyY + 20f * scale, x + 28f * scale, groundY + 28f, paint)
+
+            val legSwing = sin((elapsedTime * 7f + enemy.x * 0.01f).toDouble()).toFloat() * 8f
+            canvas.drawLine(x - 12f * scale, bodyY + 20f * scale, x - 22f * scale + legSwing, groundY + 28f, paint)
+            canvas.drawLine(x + 12f * scale, bodyY + 20f * scale, x + 28f * scale - legSwing, groundY + 28f, paint)
             paint.style = Paint.Style.FILL
 
-            paint.color = Color.RED
+            paint.color = if (enraged) Color.rgb(255, 230, 60) else Color.RED
             canvas.drawCircle(x + 50f * scale, bodyY - 116f * scale, 5f * scale, paint)
 
             if (enemy.boss) {
@@ -465,12 +606,12 @@ class MainActivity : Activity() {
                 paint.textAlign = Paint.Align.CENTER
                 paint.textSize = 24f
                 paint.color = Color.rgb(255, 244, 80)
-                canvas.drawText("ALPHA FLAMINGO", x, bodyY - 170f, paint)
+                canvas.drawText(if (enraged) "ALPHA FLAMINGO — MAD" else "ALPHA FLAMINGO", x, bodyY - 170f, paint)
 
                 val barW = 170f
                 paint.color = Color.argb(180, 0, 0, 0)
                 canvas.drawRect(x - barW / 2, bodyY - 158f, x + barW / 2, bodyY - 145f, paint)
-                paint.color = Color.rgb(232, 48, 48)
+                paint.color = if (enraged) Color.rgb(255, 124, 35) else Color.rgb(232, 48, 48)
                 canvas.drawRect(
                     x - barW / 2,
                     bodyY - 158f,
@@ -628,7 +769,7 @@ class MainActivity : Activity() {
             if (started && !gameOver && !levelWon) return
 
             paint.color = Color.argb(190, 0, 0, 0)
-            canvas.drawRect(0f, height * 0.26f, width.toFloat(), height * 0.68f, paint)
+            canvas.drawRect(0f, height * 0.24f, width.toFloat(), height * 0.70f, paint)
             paint.textAlign = Paint.Align.CENTER
             paint.typeface = Typeface.DEFAULT_BOLD
             paint.color = Color.WHITE
@@ -636,16 +777,21 @@ class MainActivity : Activity() {
             when {
                 !started -> {
                     paint.textSize = height * 0.064f
-                    canvas.drawText("TAP TO START THE BAD DECISIONS", width / 2f, height * 0.44f, paint)
+                    canvas.drawText("TAP TO START THE BAD DECISIONS", width / 2f, height * 0.41f, paint)
                     paint.textSize = height * 0.032f
                     paint.color = Color.rgb(255, 238, 82)
                     canvas.drawText(
                         "GET TO THE BACKYARD EXIT. TRY NOT TO GET MURDERED BY LAWN ORNAMENTS.",
                         width / 2f,
-                        height * 0.53f,
+                        height * 0.50f,
                         paint
                     )
+                    paint.textSize = height * 0.027f
+                    paint.color = Color.WHITE
+                    canvas.drawText("LEFT THUMB: MOVE  •  RIGHT THUMB: JUMP / WHACK", width / 2f, height * 0.57f, paint)
+                    canvas.drawText("JUMP THE BACKYARD JUNK. COLLECT COLD ONES. MAKE POOR CHOICES.", width / 2f, height * 0.62f, paint)
                 }
+
                 gameOver -> {
                     paint.textSize = height * 0.075f
                     paint.color = Color.rgb(255, 90, 70)
@@ -654,6 +800,7 @@ class MainActivity : Activity() {
                     paint.color = Color.WHITE
                     canvas.drawText("TAP TO TRY ANOTHER BAD IDEA", width / 2f, height * 0.54f, paint)
                 }
+
                 levelWon -> {
                     paint.textSize = height * 0.073f
                     paint.color = Color.rgb(255, 238, 82)
