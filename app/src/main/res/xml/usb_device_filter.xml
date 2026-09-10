@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Current tested microSD USB controller: VID 6408 / PID 550 -->
-    <usb-device vendor-id="6408" product-id="550" />
-</resources>
