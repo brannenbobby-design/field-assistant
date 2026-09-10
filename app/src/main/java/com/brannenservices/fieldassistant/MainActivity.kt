@@ -2,6 +2,7 @@ package com.brannenservices.fieldassistant
 
 import android.app.PendingIntent
 import android.content.*
+import android.content.ContentValues
 import android.graphics.BitmapFactory
 import android.hardware.usb.*
 import android.net.Uri
