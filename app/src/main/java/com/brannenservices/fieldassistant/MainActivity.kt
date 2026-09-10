@@ -30,7 +30,23 @@ class MainActivity : AppCompatActivity() {
  override fun onCreate(b:Bundle?){super.onCreate(b);usbManager=getSystemService(USB_SERVICE) as UsbManager;val f=IntentFilter(ACTION_USB_PERMISSION);if(Build.VERSION.SDK_INT>=33)registerReceiver(receiver,f,RECEIVER_NOT_EXPORTED)else @Suppress("DEPRECATION") registerReceiver(receiver,f);buildUi();refresh()}
  override fun onResume(){super.onResume();refresh()}
  override fun onDestroy(){scanCancelled=true;try{unregisterReceiver(receiver)}catch(_:Exception){};super.onDestroy()}
- private fun buildUi(){val r=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER_HORIZONTAL;setPadding(28,42,28,28);setBackgroundColor(0xFF0B0D10.toInt())};fun button(t:String,a:()->Unit):Button=Button(this).apply{text=t;setOnClickListener{a()}};r.addView(TextView(this).apply{text="PHOTO RESCUE";textSize=30f;setTextColor(-1);gravity=Gravity.CENTER});r.addView(TextView(this).apply{text="Personal SD Card Recovery Tool";textSize=16f;setTextColor(0xFF9CA3AF.toInt());gravity=Gravity.CENTER});status=TextView(this).apply{textSize=18f;setTextColor(-1);gravity=Gravity.CENTER;setPadding(0,18,0,16)};r.addView(status);r.addView(button("CHECK USB / SD ADAPTER"){refresh()});r.addView(button("RUN USB DIAGNOSTIC"){diagnostic()});r.addView(button("SAFE USB CLAIM TEST — READ ONLY"){safeClaimTest()});r.addView(button("STABILIZED RAW PREFLIGHT — READ ONLY"){rawTest()});deepButton=button("DEEP RECOVERY SCAN — JPEG"){startScan()};r.addView(deepButton);cancelButton=button("CANCEL DEEP SCAN",{scanCancelled=true}).apply{isEnabled=false};r.addView(cancelButton);r.addView(button("QUICK SCAN VISIBLE PHOTOS"){picker.launch(null)});progress=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=1000;visibility=ProgressBar.GONE};r.addView(progress,LinearLayout.LayoutParams(-1,-2));resultText=TextView(this).apply{text="V0.8 stabilized USB transport. Source SD card remains read-only.";textSize=14f;setTextColor(0xFF9CA3AF.toInt());setPadding(0,14,0,0)};r.addView(resultText);setContentView(r)}
+ private fun buildUi(){
+  val r=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER_HORIZONTAL;setPadding(28,42,28,28);setBackgroundColor(0xFF0B0D10.toInt())}
+  fun button(t:String,a:()->Unit):Button=Button(this).apply{text=t;setOnClickListener{a()}}
+  r.addView(TextView(this).apply{text="PHOTO RESCUE";textSize=30f;setTextColor(-1);gravity=Gravity.CENTER})
+  r.addView(TextView(this).apply{text="Personal SD Card Recovery Tool";textSize=16f;setTextColor(0xFF9CA3AF.toInt());gravity=Gravity.CENTER})
+  status=TextView(this).apply{textSize=18f;setTextColor(-1);gravity=Gravity.CENTER;setPadding(0,18,0,16)};r.addView(status)
+  r.addView(button("CHECK USB / SD ADAPTER",{refresh()}))
+  r.addView(button("RUN USB DIAGNOSTIC",{diagnostic()}))
+  r.addView(button("SAFE USB CLAIM TEST — READ ONLY",{safeClaimTest()}))
+  r.addView(button("STABILIZED RAW PREFLIGHT — READ ONLY",{rawTest()}))
+  deepButton=button("DEEP RECOVERY SCAN — JPEG",{startScan()});r.addView(deepButton)
+  cancelButton=button("CANCEL DEEP SCAN",{scanCancelled=true}).apply{isEnabled=false};r.addView(cancelButton)
+  r.addView(button("QUICK SCAN VISIBLE PHOTOS",{picker.launch(null)}))
+  progress=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=1000;visibility=ProgressBar.GONE};r.addView(progress,LinearLayout.LayoutParams(-1,-2))
+  resultText=TextView(this).apply{text="V0.8 stabilized USB transport. Source SD card remains read-only.";textSize=14f;setTextColor(0xFF9CA3AF.toInt());setPadding(0,14,0,0)};r.addView(resultText)
+  setContentView(r)
+ }
  private fun mass(d:UsbDevice):UsbInterface?=(0 until d.interfaceCount).map{d.getInterface(it)}.firstOrNull{it.interfaceClass==UsbConstants.USB_CLASS_MASS_STORAGE&&it.interfaceProtocol==0x50}
  private fun eps(i:UsbInterface):Pair<UsbEndpoint,UsbEndpoint>?{var input:UsbEndpoint?=null;var output:UsbEndpoint?=null;for(n in 0 until i.endpointCount){val e=i.getEndpoint(n);if(e.type==UsbConstants.USB_ENDPOINT_XFER_BULK){if(e.direction==UsbConstants.USB_DIR_IN)input=e else output=e}};return if(input!=null&&output!=null)Pair(input!!,output!!)else null}
  private fun target()=usbManager.deviceList.values.firstOrNull{mass(it)!=null}
