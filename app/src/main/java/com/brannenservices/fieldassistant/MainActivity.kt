@@ -24,7 +24,16 @@ class MainActivity : Activity() {
         var hp: Int,
         val maxHp: Int,
         val boss: Boolean = false,
-        var lastHitAttack: Int = -1
+        var lastHitAttack: Int = -1,
+        var hitFlash: Float = 0f
+    )
+
+    private enum class PickupType { COLD_ONE }
+
+    private data class Pickup(
+        val x: Float,
+        val type: PickupType,
+        var collected: Boolean = false
     )
 
     private enum class ActionControl { JUMP, WHACK }
@@ -61,6 +70,7 @@ class MainActivity : Activity() {
 
         private var score = 0
         private var health = 100
+        private var coldOnes = 0
         private var started = false
         private var gameOver = false
         private var levelWon = false
@@ -70,7 +80,12 @@ class MainActivity : Activity() {
         private var hurtCooldown = 0f
         private var lastFrame = System.nanoTime()
 
+        private var messageText = ""
+        private var messageTimer = 0f
+        private var bossIntroShown = false
+
         private val flamingos = mutableListOf<Flamingo>()
+        private val pickups = mutableListOf<Pickup>()
 
         init {
             resetGame()
@@ -89,6 +104,7 @@ class MainActivity : Activity() {
             drawWorld(canvas)
             drawHud(canvas)
             drawControls(canvas)
+            drawMessage(canvas)
             drawOverlay(canvas)
             postInvalidateOnAnimation()
         }
@@ -101,11 +117,15 @@ class MainActivity : Activity() {
             facing = 1
             score = 0
             health = 100
+            coldOnes = 0
             gameOver = false
             levelWon = false
             attackTimer = 0f
             attackNumber = 0
             hurtCooldown = 0f
+            messageText = ""
+            messageTimer = 0f
+            bossIntroShown = false
             joystickPointerId = null
             joystickX = 0f
             joystickY = 0f
@@ -118,6 +138,11 @@ class MainActivity : Activity() {
             flamingos += Flamingo(2780f, 3, 3)
             flamingos += Flamingo(3420f, 3, 3)
             flamingos += Flamingo(4300f, 9, 9, boss = true)
+
+            pickups.clear()
+            pickups += Pickup(1225f, PickupType.COLD_ONE)
+            pickups += Pickup(2450f, PickupType.COLD_ONE)
+            pickups += Pickup(3600f, PickupType.COLD_ONE)
         }
 
         private fun updateGame(dt: Float) {
@@ -136,6 +161,7 @@ class MainActivity : Activity() {
 
             attackTimer = max(0f, attackTimer - dt)
             hurtCooldown = max(0f, hurtCooldown - dt)
+            messageTimer = max(0f, messageTimer - dt)
 
             val playerScreenTarget = width * 0.37f
             val desiredCamera = playerX - playerScreenTarget
@@ -143,13 +169,14 @@ class MainActivity : Activity() {
             cameraX = cameraX.coerceIn(0f, max(0f, worldWidth - width))
 
             for (enemy in flamingos) {
+                enemy.hitFlash = max(0f, enemy.hitFlash - dt)
                 if (enemy.hp <= 0) continue
 
                 val distance = playerX - enemy.x
                 val chaseRange = if (enemy.boss) 760f else 520f
                 if (abs(distance) < chaseRange) {
                     val direction = if (distance > 0f) 1f else -1f
-                    val speed = if (enemy.boss) 105f else 82f
+                    val speed = if (enemy.boss) 110f else 84f
                     enemy.x += direction * speed * dt
                 }
 
@@ -159,9 +186,17 @@ class MainActivity : Activity() {
                     if (signedDistance in 20f..190f && verticalOk) {
                         enemy.hp--
                         enemy.lastHitAttack = attackNumber
-                        enemy.x += facing * 70f
+                        enemy.hitFlash = 0.13f
+                        enemy.x += facing * if (enemy.boss) 42f else 78f
                         score += if (enemy.boss) 250 else 100
-                        if (enemy.hp <= 0) score += if (enemy.boss) 1500 else 250
+                        showMessage(if (enemy.boss) "THAT ACTUALLY HURT IT." else "BONK.", 0.55f)
+                        if (enemy.hp <= 0) {
+                            score += if (enemy.boss) 1500 else 250
+                            showMessage(
+                                if (enemy.boss) "THE LAWN ORNAMENT HAS BEEN DEFEATED." else "FLAMINGO PROBLEM TEMPORARILY SOLVED.",
+                                if (enemy.boss) 1.8f else 0.85f
+                            )
+                        }
                     }
                 }
 
@@ -173,13 +208,41 @@ class MainActivity : Activity() {
                 ) {
                     health = max(0, health - if (enemy.boss) 18 else 10)
                     hurtCooldown = 0.75f
-                    playerX = (playerX - facing * 90f).coerceIn(55f, worldWidth - 90f)
+                    playerX = (playerX - if (distance > 0f) 90f else -90f)
+                        .coerceIn(55f, worldWidth - 90f)
+                    showMessage("THIS WAS A TERRIBLE PLAN.", 0.85f)
                     if (health <= 0) gameOver = true
                 }
             }
 
-            val bossDefeated = flamingos.lastOrNull()?.hp == 0
+            for (pickup in pickups) {
+                if (pickup.collected) continue
+                if (abs(pickup.x - playerX) < 68f && playerY > groundY - 130f) {
+                    pickup.collected = true
+                    when (pickup.type) {
+                        PickupType.COLD_ONE -> {
+                            coldOnes++
+                            health = min(100, health + 25)
+                            score += 200
+                            showMessage("COLD ONE ACQUIRED. QUESTIONABLE MEDICAL BENEFIT.", 1.35f)
+                        }
+                    }
+                }
+            }
+
+            val boss = flamingos.lastOrNull()
+            if (!bossIntroShown && playerX > 3820f && boss != null && boss.hp > 0) {
+                bossIntroShown = true
+                showMessage("OH GOOD. AN ALPHA FLAMINGO.", 2.1f)
+            }
+
+            val bossDefeated = boss?.hp == 0
             if (bossDefeated && playerX > 4650f) levelWon = true
+        }
+
+        private fun showMessage(text: String, seconds: Float) {
+            messageText = text
+            messageTimer = seconds
         }
 
         private fun drawWorld(canvas: Canvas) {
@@ -204,6 +267,12 @@ class MainActivity : Activity() {
             canvas.drawRect(0f, groundY, width.toFloat(), groundY + height * 0.07f, paint)
             paint.color = Color.rgb(36, 146, 78)
             canvas.drawRect(0f, groundY + height * 0.07f, width.toFloat(), height.toFloat(), paint)
+
+            drawSectionSigns(canvas)
+
+            for (pickup in pickups) {
+                if (!pickup.collected) drawPickup(canvas, pickup)
+            }
 
             for (enemy in flamingos) {
                 if (enemy.hp > 0) drawFlamingo(canvas, enemy)
@@ -265,6 +334,51 @@ class MainActivity : Activity() {
             }
         }
 
+        private fun drawSectionSigns(canvas: Canvas) {
+            drawSmallSign(canvas, 760f, "POOL RULE #1", "NO FLAMINGOS")
+            drawSmallSign(canvas, 3100f, "HOA NOTICE", "THIS IS PROBABLY FINE")
+        }
+
+        private fun drawSmallSign(canvas: Canvas, worldX: Float, top: String, bottom: String) {
+            val x = worldX - cameraX
+            if (x < -180f || x > width + 180f) return
+            paint.color = Color.rgb(105, 72, 42)
+            canvas.drawRect(x - 5f, groundY - 125f, x + 5f, groundY, paint)
+            paint.color = Color.rgb(245, 239, 204)
+            canvas.drawRect(x - 105f, groundY - 185f, x + 105f, groundY - 118f, paint)
+            paint.color = Color.rgb(40, 40, 40)
+            paint.typeface = Typeface.DEFAULT_BOLD
+            paint.textAlign = Paint.Align.CENTER
+            paint.textSize = 18f
+            canvas.drawText(top, x, groundY - 157f, paint)
+            paint.textSize = 14f
+            canvas.drawText(bottom, x, groundY - 134f, paint)
+            paint.textAlign = Paint.Align.LEFT
+        }
+
+        private fun drawPickup(canvas: Canvas, pickup: Pickup) {
+            val x = pickup.x - cameraX
+            if (x < -100f || x > width + 100f) return
+            val y = groundY - 58f
+
+            when (pickup.type) {
+                PickupType.COLD_ONE -> {
+                    paint.color = Color.argb(90, 255, 244, 150)
+                    canvas.drawCircle(x, y, 42f, paint)
+                    paint.color = Color.rgb(220, 226, 232)
+                    canvas.drawRoundRect(x - 20f, y - 34f, x + 20f, y + 34f, 7f, 7f, paint)
+                    paint.color = Color.rgb(55, 133, 200)
+                    canvas.drawRect(x - 20f, y - 9f, x + 20f, y + 15f, paint)
+                    paint.color = Color.WHITE
+                    paint.typeface = Typeface.DEFAULT_BOLD
+                    paint.textAlign = Paint.Align.CENTER
+                    paint.textSize = 12f
+                    canvas.drawText("COLD", x, y + 6f, paint)
+                    paint.textAlign = Paint.Align.LEFT
+                }
+            }
+        }
+
         private fun drawPlayer(canvas: Canvas) {
             val x = playerX - cameraX
             val y = playerY
@@ -316,11 +430,19 @@ class MainActivity : Activity() {
 
             val scale = if (enemy.boss) 1.55f else 1f
             val bodyY = groundY - 92f * scale
+            val flashing = enemy.hitFlash > 0f
 
             paint.style = Paint.Style.STROKE
             paint.strokeCap = Paint.Cap.ROUND
             paint.strokeWidth = 13f * scale
-            paint.color = if (enemy.boss) Color.rgb(232, 36, 95) else Color.rgb(255, 92, 147)
+            paint.color = if (flashing) {
+                Color.WHITE
+            } else if (enemy.boss) {
+                Color.rgb(232, 36, 95)
+            } else {
+                Color.rgb(255, 92, 147)
+            }
+
             canvas.drawOval(
                 x - 38f * scale,
                 bodyY - 27f * scale,
@@ -411,8 +533,31 @@ class MainActivity : Activity() {
             canvas.drawText("POOL NOODLE PANIC", width / 2f, pad + height * 0.076f, paint)
 
             paint.textAlign = Paint.Align.RIGHT
-            paint.textSize = height * 0.038f
-            canvas.drawText("SCORE  $score", width - pad * 1.7f, pad + height * 0.05f, paint)
+            paint.textSize = height * 0.034f
+            canvas.drawText("SCORE $score", width - pad * 1.7f, pad + height * 0.038f, paint)
+            paint.textSize = height * 0.026f
+            canvas.drawText("COLD ONES $coldOnes/3", width - pad * 1.7f, pad + height * 0.073f, paint)
+            paint.textAlign = Paint.Align.LEFT
+        }
+
+        private fun drawMessage(canvas: Canvas) {
+            if (messageTimer <= 0f || !started || gameOver || levelWon) return
+            paint.typeface = Typeface.DEFAULT_BOLD
+            paint.textAlign = Paint.Align.CENTER
+            paint.textSize = min(28f, height * 0.034f)
+            val textWidth = paint.measureText(messageText)
+            paint.color = Color.argb(175, 0, 0, 0)
+            canvas.drawRoundRect(
+                width / 2f - textWidth / 2f - 24f,
+                height * 0.13f,
+                width / 2f + textWidth / 2f + 24f,
+                height * 0.13f + 48f,
+                16f,
+                16f,
+                paint
+            )
+            paint.color = Color.WHITE
+            canvas.drawText(messageText, width / 2f, height * 0.13f + 32f, paint)
             paint.textAlign = Paint.Align.LEFT
         }
 
@@ -515,8 +660,9 @@ class MainActivity : Activity() {
                     canvas.drawText("BACKYARD SURVIVED. SOMEHOW.", width / 2f, height * 0.43f, paint)
                     paint.textSize = height * 0.038f
                     paint.color = Color.WHITE
-                    canvas.drawText("POOL NOODLE PANIC CLEAR  •  SCORE $score", width / 2f, height * 0.53f, paint)
-                    canvas.drawText("TAP TO RUN IT AGAIN", width / 2f, height * 0.60f, paint)
+                    canvas.drawText("POOL NOODLE PANIC CLEAR • SCORE $score", width / 2f, height * 0.53f, paint)
+                    canvas.drawText("COLD ONES FOUND: $coldOnes/3", width / 2f, height * 0.59f, paint)
+                    canvas.drawText("TAP TO RUN IT AGAIN", width / 2f, height * 0.65f, paint)
                 }
             }
             paint.textAlign = Paint.Align.LEFT
