@@ -3,6 +3,8 @@
     <application
         android:allowBackup="true"
         android:label="Florida Man"
+        android:icon="@drawable/florida_man_icon"
+        android:roundIcon="@drawable/florida_man_icon"
         android:theme="@style/Theme.FieldAssistant">
         <activity
             android:name=".MainActivity"
