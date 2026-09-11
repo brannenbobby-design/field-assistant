@@ -7,107 +7,45 @@ import android.view.*
 import kotlin.math.*
 
 class MainActivity : Activity() {
-    data class Flamingo(var x: Float, var hp: Int, val maxHp: Int, val boss: Boolean = false, var hitId: Int = -1, var flash: Float = 0f)
-    data class Pickup(val x: Float, var taken: Boolean = false)
-    data class Hazard(val x: Float, val w: Float)
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        requestWindowFeature(Window.FEATURE_NO_TITLE)
-        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        window.decorView.systemUiVisibility = 5894
-        setContentView(GameView())
-    }
-
-    inner class GameView : View(this@MainActivity) {
-        private val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        private val birds = mutableListOf<Flamingo>()
-        private val pickups = mutableListOf<Pickup>()
-        private val hazards = mutableListOf<Hazard>()
-        private val worldW = 5600f
-        private var px = 220f; private var py = 0f; private var vy = 0f; private var ground = 0f; private var cam = 0f
-        private var face = 1; private var joyId: Int? = null; private var joyX = 0f; private var joyY = 0f
-        private var score = 0; private var hp = 100; private var beers = 0; private var started = false; private var dead = false; private var won = false
-        private var attack = 0f; private var attackId = 0; private var hurt = 0f; private var time = 0f; private var last = System.nanoTime()
-        private var message = ""; private var messageTime = 0f; private var combo = 0; private var comboTime = 0f; private var bestCombo = 0; private var wave = 1
-        private var bossIntro = false; private var rage = false
-
-        init { reset() }
-        private fun reset() {
-            px=220f; py=0f; vy=0f; cam=0f; score=0; hp=100; beers=0; dead=false; won=false; attack=0f; hurt=0f; time=0f
-            combo=0; comboTime=0f; bestCombo=0; wave=1; bossIntro=false; rage=false; joyId=null; joyX=0f; joyY=0f
-            birds.clear(); birds += Flamingo(900f,2,2); birds += Flamingo(1420f,2,2); birds += Flamingo(2050f,3,3); birds += Flamingo(2700f,3,3); birds += Flamingo(3350f,4,4); birds += Flamingo(4550f,10,10,true)
-            pickups.clear(); pickups += Pickup(1180f); pickups += Pickup(2420f); pickups += Pickup(3600f)
-            hazards.clear(); hazards += Hazard(1740f,110f); hazards += Hazard(3020f,105f); hazards += Hazard(3920f,115f)
-        }
-
-        override fun onDraw(c: Canvas) {
-            val now=System.nanoTime(); val dt=((now-last)/1e9f).coerceAtMost(.04f); last=now
-            ground=height*.77f; if(py==0f) py=ground
-            if(started&&!dead&&!won) update(dt)
-            scene(c); hud(c); controls(c); overlay(c); postInvalidateOnAnimation()
-        }
-
-        private fun update(dt: Float) {
-            time+=dt; comboTime=max(0f,comboTime-dt); if(comboTime<=0f) combo=0
-            val move=if(abs(joyX)<.14f) 0f else joyX
-            if(move!=0f){ face=if(move>0f)1 else -1; px=(px+move*430f*dt).coerceIn(55f,worldW-80f) }
-            vy+=1550f*dt; py+=vy*dt; if(py>ground){py=ground;vy=0f}
-            attack=max(0f,attack-dt); hurt=max(0f,hurt-dt); messageTime=max(0f,messageTime-dt)
-            cam+=(px-width*.37f-cam)*min(1f,dt*7f); cam=cam.coerceIn(0f,max(0f,worldW-width.toFloat()))
-            wave=if(px<1800f)1 else if(px<3700f)2 else 3
-            for(b in birds){
-                b.flash=max(0f,b.flash-dt); if(b.hp<=0) continue
-                val dx=px-b.x
-                if(abs(dx)<(if(b.boss)800f else 520f)){
-                    val fast=b.boss&&b.hp<=b.maxHp/2; val speed=if(fast)180f else if(b.boss)115f else 88f
-                    b.x+=(if(dx>0f)1f else -1f)*speed*dt
-                }
-                if(attack>0f&&b.hitId!=attackId){
-                    val signed=(b.x-px)*face.toFloat()
-                    if(signed in 15f..195f&&py>ground-165f){
-                        b.hp--; b.hitId=attackId; b.flash=.12f; b.x+=face.toFloat()*(if(b.boss)45f else 82f)
-                        combo++; comboTime=1.45f; bestCombo=max(bestCombo,combo); score+=(if(b.boss)250 else 100)*(1+(combo-1)/3)
-                        say(if(combo>=3)"$combo HIT COMBO — BAD DECISIONS MULTIPLIED" else "BONK.",.7f)
-                        if(b.boss&&b.hp<=b.maxHp/2&&!rage&&b.hp>0){rage=true;say("ALPHA FLAMINGO HAS ENTERED FULL KAREN MODE.",1.7f)}
-                        if(b.hp<=0) score+=if(b.boss)1800 else 300
-                    }
-                }
-                if(abs(b.x-px)<(if(b.boss)95f else 62f)&&py>ground-95f&&hurt<=0f){
-                    hp=max(0,hp-(if(b.boss)18 else 10)); hurt=.75f; combo=0; px+=if(dx>0f)-105f else 105f; say("THIS WAS A TERRIBLE PLAN.",.9f); if(hp<=0)dead=true
-                }
-            }
-            for(h in hazards) if(abs(px-h.x)<h.w/2f+28f&&py>ground-72f&&hurt<=0f){hp=max(0,hp-8);hurt=.7f;px+=if(px<h.x)-100f else 100f;if(hp<=0)dead=true}
-            for(q in pickups) if(!q.taken&&abs(q.x-px)<68f&&py>ground-130f){q.taken=true;beers++;hp=min(100,hp+25);score+=200;say("COLD ONE ACQUIRED. +25 QUESTIONABLE HEALTH.",1.2f)}
-            val boss=birds.last(); if(!bossIntro&&px>4050f&&boss.hp>0){bossIntro=true;say("BOSS FIGHT: ALPHA FLAMINGO",2f)}; if(boss.hp<=0&&px>5100f)won=true
-        }
-        private fun say(s:String,d:Float){message=s;messageTime=d}
-
-        private fun scene(c:Canvas){
-            p.shader=LinearGradient(0f,0f,0f,ground,Color.rgb(55,62,137),Color.rgb(245,113,99),Shader.TileMode.CLAMP); c.drawRect(0f,0f,width.toFloat(),ground,p); p.shader=null
-            p.color=Color.rgb(255,181,48); c.drawCircle(width*.68f,ground*.43f,height*.085f,p)
-            p.color=Color.rgb(42,48,85); for(i in 0..10){val x=i*width/9f-(cam*.08f%160f);c.drawRect(x,ground*.43f,x+12f,ground*.72f,p);c.drawCircle(x+6f,ground*.42f,38f,p)}
-            water(c); palms(c); house(c); fence(c)
-            p.color=Color.rgb(214,173,124);c.drawRect(0f,ground,width.toFloat(),ground+height*.075f,p);p.color=Color.rgb(28,104,67);c.drawRect(0f,ground+height*.075f,width.toFloat(),height.toFloat(),p)
-            sign(c,650f,"POOL NOODLE\nPANIC");sign(c,3150f,"SAME MESS\nDIFFERENT DAY")
-            hazards.forEach{hazard(c,it)};pickups.filter{!it.taken}.forEach{pickup(c,it)};birds.filter{it.hp>0}.forEach{bird(c,it)};man(c);sign(c,5250f,"BACKYARD\nEXIT")
-        }
-        private fun water(c:Canvas){p.color=Color.rgb(27,99,143);c.drawRect(0f,ground*.58f,width.toFloat(),ground*.73f,p);p.color=Color.rgb(255,143,113);for(i in 0..8){val x=i*180f-(cam*.15f%180f);c.drawRect(x,ground*.64f,x+95f,ground*.645f,p)};p.color=Color.rgb(21,47,52);val ax=width*.76f-(cam*.05f%400f);c.drawOval(ax,ground*.66f,ax+105f,ground*.70f,p);p.color=Color.YELLOW;c.drawCircle(ax+78f,ground*.675f,4f,p)}
-        private fun palms(c:Canvas){for(i in 0..5){val x=i*330f-(cam*.22f%330f)-100f;p.color=Color.rgb(72,49,39);p.strokeWidth=18f;c.drawLine(x,ground*.65f,x+35f,ground*.22f,p);p.color=Color.rgb(15,75,55);for(a in -2..2){val af=a.toFloat();c.drawOval(x+35f+af*8f-70f,ground*.22f-18f-abs(af)*8f,x+35f+af*8f+70f,ground*.22f+18f+abs(af)*5f,p)}}}
-        private fun house(c:Canvas){val x=150f-(cam*.35f%1900f);p.color=Color.rgb(89,91,111);c.drawRect(x,ground*.45f,x+430f,ground*.69f,p);p.color=Color.rgb(52,45,52);val q=Path();q.moveTo(x-30f,ground*.46f);q.lineTo(x+210f,ground*.32f);q.lineTo(x+465f,ground*.46f);q.close();c.drawPath(q,p);p.color=Color.rgb(255,205,85);for(i in 0..5)c.drawCircle(x+45f+i*65f,ground*.48f,5f,p)}
-        private fun fence(c:Canvas){p.color=Color.rgb(128,88,62);var x=-(cam*.62f%78f)-78f;while(x<width+78f){c.drawRect(x,ground*.53f,x+62f,ground*.73f,p);val q=Path();q.moveTo(x,ground*.53f);q.lineTo(x+31f,ground*.49f);q.lineTo(x+62f,ground*.53f);q.close();c.drawPath(q,p);x+=78f}}
-        private fun sign(c:Canvas,xw:Float,s:String){val x=xw-cam;if(x !in -180f..width+180f)return;p.color=Color.rgb(78,48,29);c.drawRect(x-6f,ground-145f,x+6f,ground,p);p.color=Color.rgb(231,211,168);c.drawRect(x-105f,ground-225f,x+105f,ground-140f,p);p.color=Color.rgb(36,31,32);p.typeface=Typeface.DEFAULT_BOLD;p.textAlign=Paint.Align.CENTER;p.textSize=20f;s.split("\n").forEachIndexed{i,v->c.drawText(v,x,ground-192f+i*27f,p)};p.textAlign=Paint.Align.LEFT}
-        private fun hazard(c:Canvas,h:Hazard){val x=h.x-cam;if(x !in -120f..width+120f)return;p.color=Color.rgb(178,36,38);c.drawRoundRect(x-50f,ground-58f,x+50f,ground+4f,8f,8f,p);p.color=Color.WHITE;c.drawRect(x-53f,ground-66f,x+53f,ground-52f,p);p.color=Color.rgb(90,24,24);c.drawRect(x-38f,ground-45f,x+38f,ground-30f,p)}
-        private fun pickup(c:Canvas,q:Pickup){val x=q.x-cam;if(x !in -80f..width+80f)return;val y=ground-62f+sin(time*4f+q.x*.01f)*6f;p.color=Color.argb(80,255,224,60);c.drawCircle(x,y,40f,p);p.color=Color.rgb(226,226,220);c.drawRoundRect(x-18f,y-32f,x+18f,y+32f,5f,5f,p);p.color=Color.rgb(35,93,184);c.drawRect(x-18f,y-10f,x+18f,y+14f,p);p.color=Color.YELLOW;p.textAlign=Paint.Align.CENTER;p.typeface=Typeface.DEFAULT_BOLD;p.textSize=11f;c.drawText("BEER",x,y+5f,p);p.textAlign=Paint.Align.LEFT}
-        private fun man(c:Canvas){if(hurt>0f&&(hurt*12f).toInt()%2==0)return;val x=px-cam;val y=py;p.color=Color.rgb(235,169,115);c.drawRect(x-28f,y-7f,x-9f,y+43f,p);c.drawRect(x+9f,y-7f,x+28f,y+43f,p);p.color=Color.rgb(26,86,175);c.drawRect(x-38f,y-49f,x+38f,y+5f,p);p.color=Color.WHITE;c.drawRect(x-35f,y-112f,x+35f,y-47f,p);p.color=Color.rgb(28,135,72);c.drawCircle(x,y-80f,13f,p);p.color=Color.rgb(235,169,115);c.drawCircle(x,y-148f,37f,p);p.color=Color.rgb(105,59,27);c.drawRect(x-42f,y-179f,x+28f,y-159f,p);c.drawRect(x-42f,y-162f,x-27f,y-111f,p);p.color=Color.rgb(222,189,126);c.drawRect(x-39f,y-184f,x+30f,y-169f,p);p.color=Color.rgb(35,35,38);c.drawRect(x-29f,y-154f,x-3f,y-143f,p);c.drawRect(x+3f,y-154f,x+29f,y-143f,p);c.drawRect(x-34f,y+39f,x-4f,y+47f,p);c.drawRect(x+4f,y+39f,x+34f,y+47f,p);p.strokeWidth=21f;p.strokeCap=Paint.Cap.ROUND;p.color=Color.rgb(32,154,255);val sx=x+face*26f;val sy=y-90f;if(attack>0f){val z=(1f-attack/.2f).coerceIn(0f,1f);val deg=if(face>0)-70f+z*105f else 250f-z*105f;val r=Math.toRadians(deg.toDouble());c.drawLine(sx,sy,sx+cos(r).toFloat()*172f,sy+sin(r).toFloat()*172f,p)}else c.drawLine(sx,sy,x+face*82f,y-132f,p)}
-        private fun bird(c:Canvas,b:Flamingo){val x=b.x-cam;if(x !in -190f..width+190f)return;val s=if(b.boss)1.55f else 1f;val y=ground-86f*s;p.color=if(b.flash>0f)Color.WHITE else if(b.boss&&b.hp<=b.maxHp/2)Color.rgb(205,31,68) else Color.rgb(239,62,116);c.drawOval(x-48f*s,y-30f*s,x+43f*s,y+31f*s,p);val w=Path();w.moveTo(x-10f*s,y-12f*s);w.lineTo(x+20f*s,y-65f*s);w.lineTo(x+35f*s,y-8f*s);w.close();c.drawPath(w,p);p.style=Paint.Style.STROKE;p.strokeWidth=14f*s;c.drawLine(x+25f*s,y-20f*s,x+32f*s,y-94f*s,p);p.style=Paint.Style.FILL;c.drawCircle(x+49f*s,y-112f*s,25f*s,p);p.color=Color.rgb(25,25,25);val beak=Path();beak.moveTo(x+68f*s,y-113f*s);beak.lineTo(x+105f*s,y-126f*s);beak.lineTo(x+73f*s,y-101f*s);beak.close();c.drawPath(beak,p);p.color=Color.YELLOW;c.drawCircle(x+54f*s,y-118f*s,7f*s,p);p.color=Color.RED;c.drawCircle(x+56f*s,y-119f*s,3f*s,p);p.strokeWidth=8f*s;p.color=Color.rgb(45,30,40);c.drawLine(x-17f*s,y+24f*s,x-23f*s,ground+25f,p);c.drawLine(x+12f*s,y+24f*s,x+21f*s,ground+25f,p);if(b.boss){p.textAlign=Paint.Align.CENTER;p.typeface=Typeface.DEFAULT_BOLD;p.textSize=23f;p.color=Color.YELLOW;c.drawText("ALPHA FLAMINGO",x,y-170f,p);p.color=Color.argb(190,0,0,0);c.drawRect(x-90f,y-158f,x+90f,y-143f,p);p.color=Color.RED;c.drawRect(x-90f,y-158f,x-90f+180f*b.hp/b.maxHp.toFloat(),y-143f,p);p.textAlign=Paint.Align.LEFT}}
-        private fun hud(c:Canvas){val pad=height*.03f;p.color=Color.argb(205,9,13,24);c.drawRoundRect(pad,pad,width*.34f,pad+height*.095f,10f,10f,p);p.color=Color.rgb(255,204,43);p.typeface=Typeface.DEFAULT_BOLD;p.textSize=height*.035f;c.drawText("HOLD MY BEER",pad*1.7f,pad+height*.04f,p);p.color=Color.rgb(20,38,57);c.drawRect(pad*1.7f,pad+height*.057f,width*.31f,pad+height*.079f,p);p.color=if(hp>35)Color.rgb(54,210,57) else Color.RED;c.drawRect(pad*1.7f,pad+height*.057f,pad*1.7f+(width*.31f-pad*1.7f)*hp/100f,pad+height*.079f,p);p.textAlign=Paint.Align.CENTER;p.textSize=height*.048f;p.color=Color.rgb(255,209,45);c.drawText("FLORIDA MAN",width/2f,pad+height*.043f,p);p.textSize=height*.024f;p.color=Color.WHITE;c.drawText("POOL NOODLE PANIC • LEVEL 1 • WAVE $wave/3",width/2f,pad+height*.074f,p);p.textAlign=Paint.Align.RIGHT;p.textSize=height*.032f;c.drawText("SCORE $score",width-pad*1.5f,pad+height*.034f,p);p.textSize=height*.025f;p.color=Color.rgb(255,207,47);c.drawText("COLD ONES x $beers",width-pad*1.5f,pad+height*.068f,p);if(combo>=2){p.textAlign=Paint.Align.CENTER;p.textSize=height*.044f;p.color=Color.rgb(255,117,34);c.drawText("COMBO x$combo",width*.69f,height*.16f,p)};if(messageTime>0f&&started&&!dead&&!won){p.textAlign=Paint.Align.CENTER;p.textSize=min(27f,height*.032f);p.color=Color.WHITE;c.drawText(message,width/2f,height*.225f,p)};p.textAlign=Paint.Align.LEFT}
-        private fun controls(c:Canvas){val r=min(height*.085f,78f);val y=height-r-height*.035f;val jr=min(height*.115f,96f);val cx=max(96f,height*.16f);val cy=height-max(82f,height*.14f);p.color=Color.argb(110,5,10,18);c.drawCircle(cx,cy,jr,p);p.color=Color.argb(220,28,40,55);c.drawCircle(cx+joyX*jr*.58f,cy+joyY*jr*.58f,jr*.46f,p);button(c,width-r-height*.035f-r*2.25f,y,r,"JUMP");button(c,width-r-height*.035f,y,r,"WHACK")}
-        private fun button(c:Canvas,x:Float,y:Float,r:Float,s:String){p.color=Color.argb(150,5,10,18);c.drawCircle(x,y,r,p);p.color=Color.WHITE;p.typeface=Typeface.DEFAULT_BOLD;p.textAlign=Paint.Align.CENTER;p.textSize=r*.32f;c.drawText(s,x,y+p.textSize*.34f,p);p.textAlign=Paint.Align.LEFT}
-        private fun overlay(c:Canvas){if(started&&!dead&&!won)return;p.color=Color.argb(210,4,8,18);c.drawRect(0f,height*.24f,width.toFloat(),height*.70f,p);p.textAlign=Paint.Align.CENTER;p.typeface=Typeface.DEFAULT_BOLD;if(!started){p.textSize=height*.07f;p.color=Color.rgb(255,205,39);c.drawText("FLORIDA MAN",width/2f,height*.38f,p);p.textSize=height*.045f;p.color=Color.WHITE;c.drawText("LEGENDARY BAD DECISIONS",width/2f,height*.45f,p);p.textSize=height*.035f;p.color=Color.rgb(255,112,46);c.drawText("POOL NOODLE PANIC",width/2f,height*.53f,p);p.textSize=height*.027f;p.color=Color.WHITE;c.drawText("TAP TO START • SURVIVE 3 WAVES • DEFEAT THE ALPHA FLAMINGO",width/2f,height*.61f,p)}else if(dead){p.textSize=height*.07f;p.color=Color.rgb(255,80,65);c.drawText("WELL, THAT ESCALATED.",width/2f,height*.44f,p);p.textSize=height*.035f;p.color=Color.WHITE;c.drawText("BEST COMBO $bestCombo • TAP TO TRY AGAIN",width/2f,height*.55f,p)}else{p.textSize=height*.066f;p.color=Color.YELLOW;c.drawText("BACKYARD SURVIVED. SOMEHOW.",width/2f,height*.43f,p);p.textSize=height*.034f;p.color=Color.WHITE;c.drawText("SCORE $score • BEST COMBO $bestCombo • COLD ONES $beers/3",width/2f,height*.54f,p);c.drawText("TAP TO RUN IT AGAIN",width/2f,height*.62f,p)};p.textAlign=Paint.Align.LEFT}
-        private fun jump(){if(py>=ground-4f)vy=-720f}
-        private fun whack(){if(attack<=0f){attackId++;attack=.2f}}
-        override fun onTouchEvent(e:MotionEvent):Boolean{when(e.actionMasked){MotionEvent.ACTION_DOWN,MotionEvent.ACTION_POINTER_DOWN->{val i=e.actionIndex;val id=e.getPointerId(i);val x=e.getX(i);val y=e.getY(i);if(!started){started=true;last=System.nanoTime();return true};if(dead||won){reset();started=true;last=System.nanoTime();return true};val cx=max(96f,height*.16f);val cy=height-max(82f,height*.14f);val jr=min(height*.115f,96f);if(joyId==null&&hypot(x-cx,y-cy)<=jr*1.45f){joyId=id;setJoy(x,y)}else{val r=min(height*.085f,78f);val by=height-r-height*.035f;val wx=width-r-height*.035f;val jumpX=wx-r*2.25f;if(hypot(x-wx,y-by)<=r*1.22f)whack() else if(hypot(x-jumpX,y-by)<=r*1.22f)jump()}};MotionEvent.ACTION_MOVE->{joyId?.let{id->val i=e.findPointerIndex(id);if(i>=0)setJoy(e.getX(i),e.getY(i))}};MotionEvent.ACTION_UP,MotionEvent.ACTION_POINTER_UP->{val id=e.getPointerId(e.actionIndex);if(id==joyId){joyId=null;joyX=0f;joyY=0f}};MotionEvent.ACTION_CANCEL->{joyId=null;joyX=0f;joyY=0f}};return true}
-        private fun setJoy(x:Float,y:Float){val cx=max(96f,height*.16f);val cy=height-max(82f,height*.14f);val r=min(height*.115f,96f);val dx=x-cx;val dy=y-cy;val d=hypot(dx,dy);if(d<=r||d==0f){joyX=(dx/r).coerceIn(-1f,1f);joyY=(dy/r).coerceIn(-1f,1f)}else{joyX=dx/d;joyY=dy/d}}
-    }
+ override fun onCreate(b:Bundle?){super.onCreate(b);requestWindowFeature(Window.FEATURE_NO_TITLE);window.setFlags(1024,1024);window.decorView.systemUiVisibility=5894;setContentView(GameView())}
+ inner class GameView:View(this@MainActivity){
+  data class Bird(var x:Float,var hp:Int,val max:Int,val boss:Boolean=false,var hit:Int=-1,var flash:Float=0f)
+  data class Beer(val x:Float,var taken:Boolean=false)
+  val W=640; val H=360; val G=278f; val WORLD=3000f
+  val bmp=Bitmap.createBitmap(W,H,Bitmap.Config.ARGB_8888); val bc=Canvas(bmp)
+  val p=Paint().apply{isAntiAlias=false}; val screen=Paint().apply{isAntiAlias=false;isFilterBitmap=false}
+  var px=105f;var py=G;var vy=0f;var cam=0f;var face=1;var joy=0f;var joyId=-1
+  var started=false;var dead=false;var won=false;var hp=100;var score=0;var cans=0;var attack=0f;var attackId=0;var hurt=0f;var t=0f;var last=System.nanoTime();var combo=0;var comboT=0f;var wave=1;var msg="";var msgT=0f
+  val birds=mutableListOf(Bird(470f,2,2),Bird(760f,2,2),Bird(1080f,3,3),Bird(1450f,3,3),Bird(1880f,4,4),Bird(2470f,12,12,true))
+  val beers=mutableListOf(Beer(650f),Beer(1330f),Beer(2050f))
+  override fun onDraw(c:Canvas){val n=System.nanoTime();val dt=((n-last)/1e9f).coerceAtMost(.04f);last=n;if(started&&!dead&&!won)update(dt);drawGame();c.drawBitmap(bmp,null,Rect(0,0,width,height),screen);postInvalidateOnAnimation()}
+  fun update(dt:Float){t+=dt;attack=max(0f,attack-dt);hurt=max(0f,hurt-dt);comboT=max(0f,comboT-dt);msgT=max(0f,msgT-dt);if(comboT<=0)combo=0
+   if(abs(joy)>.12f){face=if(joy>0)1 else -1;px=(px+joy*220f*dt).coerceIn(30f,WORLD-40f)}
+   vy+=780f*dt;py+=vy*dt;if(py>G){py=G;vy=0f};cam+=(px-235f-cam)*min(1f,dt*7f);cam=cam.coerceIn(0f,WORLD-W);wave=if(px<1000)1 else if(px<2000)2 else 3
+   birds.forEach{b->b.flash=max(0f,b.flash-dt);if(b.hp<=0)return@forEach;val dx=px-b.x;if(abs(dx)<if(b.boss)390f else 260f)b.x+=if(dx>0) (if(b.boss)78f else 55f)*dt else -(if(b.boss)78f else 55f)*dt
+    if(attack>0&&b.hit!=attackId){val d=(b.x-px)*face;if(d in 5f..105f&&py>G-90){b.hp--;b.hit=attackId;b.flash=.1f;b.x+=face*(if(b.boss)20 else 38);combo++;comboT=1.3f;score+=(if(b.boss)250 else 100)*(1+(combo-1)/3);say(if(combo>2)"$combo HIT COMBO!" else "BONK!");if(b.hp<=0)score+=if(b.boss)1800 else 300}}
+    if(abs(b.x-px)<if(b.boss)48 else 31&&py>G-55&&hurt<=0){hp=max(0,hp-(if(b.boss)18 else 10));hurt=.7f;px+=if(dx>0)-55 else 55;if(hp<=0)dead=true}}
+   beers.forEach{if(!it.taken&&abs(it.x-px)<34&&py>G-70){it.taken=true;cans++;hp=min(100,hp+25);score+=200;say("COLD ONE ACQUIRED!")}}
+   if(birds.last().hp<=0&&px>2780)won=true
+  }
+  fun say(s:String){msg=s;msgT=1.1f}
+  fun col(v:Int){p.color=v;p.style=Paint.Style.FILL;p.shader=null}
+  fun rect(c:Canvas,l:Float,top:Float,r:Float,b:Float,v:Int){col(v);c.drawRect(l,top,r,b,p)}
+  fun txt(c:Canvas,s:String,x:Float,y:Float,size:Float,v:Int,center:Boolean=false){col(v);p.typeface=Typeface.create(Typeface.MONOSPACE,Typeface.BOLD);p.textSize=size;p.textAlign=if(center)Paint.Align.CENTER else Paint.Align.LEFT;c.drawText(s,x,y,p);p.textAlign=Paint.Align.LEFT}
+  fun drawGame(){rect(bc,0f,0f,W.toFloat(),H.toFloat(),Color.rgb(39,31,84));sky();distant();dock();props();beers.filter{!it.taken}.forEach{beer(it)};birds.filter{it.hp>0}.forEach{flamingo(it)};man();hud();controls();if(!started)panel("POOL NOODLE PANIC","TAP TO START THE BAD DECISIONS");if(dead)panel("WELL, THAT WENT BAD","TAP TO TRY AGAIN");if(won)panel("ALPHA FLAMINGO DEFEATED","TAP FOR ANOTHER BAD IDEA");if(msgT>0){rect(bc,180f,305f,460f,331f,Color.rgb(17,16,30));txt(bc,msg,320f,323f,12f,Color.YELLOW,true)}}
+  fun sky(){p.shader=LinearGradient(0f,25f,0f,220f,Color.rgb(55,39,115),Color.rgb(255,102,73),Shader.TileMode.CLAMP);bc.drawRect(0f,25f,640f,220f,p);p.shader=null;col(Color.rgb(255,184,50));bc.drawCircle(465f,142f,42f,p);rect(bc,425f,142f,505f,146f,Color.rgb(255,210,76));for(i in 0..5)rect(bc,400f+i*22,151f+i%2*5,510f-i*12,154f+i%2*5,Color.rgb(255,150,69))}
+  fun distant(){val off=-(cam*.08f%180f);for(i in -1..4){val x=off+i*180;rect(bc,x+75,126f,x+80,220f,Color.rgb(24,44,65));col(Color.rgb(16,57,55));for(a in -2..2){val q=Path();q.moveTo(x+78,128f);q.lineTo(x+78+a*29,112f+abs(a)*6);q.lineTo(x+83+a*12,133f);q.close();bc.drawPath(q,p)}};rect(bc,0f,190f,640f,224f,Color.rgb(19,91,126));for(i in 0..9){val x=i*79f-(cam*.13f%79f);rect(bc,x,201f,x+43,204f,Color.rgb(255,143,88));rect(bc,x+12,212f,x+62,214f,Color.rgb(92,166,175))}
+   val hx=45f-(cam*.2f%1050f);rect(bc,hx,139f,hx+150,220f,Color.rgb(44,63,75));rect(bc,hx+8,151f,hx+142,215f,Color.rgb(64,84,91));col(Color.rgb(31,31,43));val roof=Path();roof.moveTo(hx-10,151f);roof.lineTo(hx+72,113f);roof.lineTo(hx+160,151f);roof.close();bc.drawPath(roof,p);for(i in 0..3){rect(bc,hx+18+i*32,168f,hx+35+i*32,192f,Color.rgb(255,197,74));rect(bc,hx+21+i*32,171f,hx+32+i*32,189f,Color.rgb(255,231,138))}}
+  fun dock(){rect(bc,0f,224f,640f,279f,Color.rgb(78,52,39));for(i in 0..10){val x=i*66f-(cam*.65f%66f);rect(bc,x,224f,x+58,272f,if(i%2==0)Color.rgb(139,88,52) else Color.rgb(119,72,47));rect(bc,x,229f,x+58,233f,Color.rgb(181,117,63));rect(bc,x+7,270f,x+15,315f,Color.rgb(57,42,36));rect(bc,x+4,306f,x+19,312f,Color.rgb(36,29,31))};rect(bc,0f,279f,640f,360f,Color.rgb(12,74,96));for(i in 0..8){val x=i*91f-(cam*.4f%91f);rect(bc,x,300f,x+53,303f,Color.rgb(37,134,148));rect(bc,x+30,330f,x+76,333f,Color.rgb(20,103,128))}}
+  fun props(){sign(360f,"GOOD BEER","BAD IDEAS");sign(1660f,"NO WAKE","JUST CHAOS");sign(2750f,"BEWARE","GATORS");val gx=2210f-cam;if(gx in -100f..700f){col(Color.rgb(22,70,48));bc.drawOval(gx-50,292f,gx+55,322f,p);rect(bc,gx+26,286f,gx+82,305f,Color.rgb(22,70,48));rect(bc,gx+72,291f,gx+92,296f,Color.rgb(238,222,160));rect(bc,gx+77,301f,gx+94,305f,Color.WHITE);rect(bc,gx+55,289f,gx+59,293f,Color.YELLOW)}}
+  fun sign(wx:Float,a:String,b:String){val x=wx-cam;if(x !in -100f..740f)return;rect(bc,x-3,184f,x+3,225f,Color.rgb(62,38,27));rect(bc,x-48,164f,x+48,184f,Color.rgb(188,135,73));txt(bc,a,x,174f,8f,Color.rgb(37,27,26),true);txt(bc,b,x,182f,8f,Color.rgb(37,27,26),true)}
+  fun man(){if(hurt>0&&(hurt*12).toInt()%2==0)return;val x=px-cam;val y=py;val bob=if(abs(joy)>.12f&&py>=G)sin(t*13f)*2f else 0f;val skin=Color.rgb(221,145,91);val dark=Color.rgb(52,34,30);rect(bc,x-13,y-5+bob,x-3,y+21+bob,skin);rect(bc,x+5,y-5-bob,x+15,y+21-bob,skin);rect(bc,x-17,y+17+bob,x-1,y+22+bob,Color.rgb(35,35,35));rect(bc,x+2,y+17-bob,x+19,y+22-bob,Color.rgb(35,35,35));rect(bc,x-19,y-32,x+19,y+2,Color.rgb(35,82,145));for(i in 0..3)rect(bc,x-15+i*9,y-27+(i%2)*7,x-9+i*9,y-21+(i%2)*7,Color.WHITE);rect(bc,x-18,y-70,x+18,y-31,Color.rgb(238,235,214));rect(bc,x-14,y-65,x+14,y-35,Color.WHITE);rect(bc,x-20,y-62,x-13,y-35,skin);rect(bc,x+13,y-62,x+21,y-35,skin);rect(bc,x-16,y-98,x+16,y-70,skin);rect(bc,x-19,y-96,x-14,y-70,dark);rect(bc,x-17,y-103,x+13,y-96,Color.rgb(226,218,186));rect(bc,x+11,y-100,x+23,y-96,Color.rgb(226,218,186));rect(bc,x-13,y-91,x-1,y-85,Color.BLACK);rect(bc,x+2,y-91,x+14,y-85,Color.BLACK);rect(bc,x-1,y-89,x+3,y-87,Color.rgb(45,45,45));rect(bc,x+5,y-78,x+16,y-74,dark);rect(bc,x-12,y-72,x+10,y-69,dark);val sx=x+face*17;val sy=y-51;col(Color.rgb(37,164,255));p.strokeWidth=9f;p.strokeCap=Paint.Cap.SQUARE;if(attack>0){val a=(1-attack/.2f).coerceIn(0f,1f);val deg=if(face>0)-55+a*95 else 235-a*95;val r=Math.toRadians(deg.toDouble());bc.drawLine(sx,sy,sx+cos(r).toFloat()*82,sy+sin(r).toFloat()*82,p)}else bc.drawLine(sx,sy,x+face*52,y-70,p)}
+  fun flamingo(b:Bird){val x=b.x-cam;if(x !in -100f..740f)return;val s=if(b.boss)1.55f else 1f;val y=G;val pink=if(b.flash>0)Color.WHITE else if(b.boss&&b.hp<=6)Color.rgb(226,38,71) else Color.rgb(244,74,128);col(pink);bc.drawOval(x-24*s,y-45*s,x+25*s,y-18*s,p);rect(bc,x+8*s,y-62*s,x+15*s,y-31*s,pink);rect(bc,x+12*s,y-77*s,x+19*s,y-57*s,pink);bc.drawOval(x+9*s,y-83*s,x+29*s,y-70*s,p);rect(bc,x+26*s,y-79*s,x+39*s,y-73*s,Color.rgb(35,28,35));rect(bc,x+17*s,y-79*s,x+21*s,y-75*s,Color.YELLOW);rect(bc,x-10*s,y-42*s,x+14*s,y-25*s,Color.rgb(215,49,106));rect(bc,x-13*s,y-20*s,x-9*s,y,pink);rect(bc,x+9*s,y-20*s,x+13*s,y,pink);rect(bc,x-17*s,y-2*s,x-7*s,y+2*s,Color.rgb(42,34,40));rect(bc,x+8*s,y-2*s,x+18*s,y+2*s,Color.rgb(42,34,40));if(b.boss){rect(bc,x-31*s,y-91*s,x+31*s,y-86*s,Color.rgb(72,25,29));txt(bc,"ALPHA",x,y-94*s,7f,Color.YELLOW,true)}}
+  fun beer(q:Beer){val x=q.x-cam;if(x !in -30f..670f)return;val y=G-31+sin(t*5+q.x)*3;rect(bc,x-8,y-15,x+8,y+15,Color.rgb(225,225,213));rect(bc,x-8,y-7,x+8,y+8,Color.rgb(30,99,181));rect(bc,x-5,y-18,x+5,y-14,Color.rgb(180,180,170));txt(bc,"BEER",x,y+3,5f,Color.YELLOW,true)}
+  fun hud(){rect(bc,0f,0f,640f,38f,Color.rgb(15,14,31));txt(bc,"HOLD MY BEER",10f,14f,10f,Color.YELLOW);rect(bc,10f,20f,188f,31f,Color.rgb(54,39,51));rect(bc,12f,22f,12f+174f*hp/100f,29f,if(hp>30)Color.rgb(48,215,75) else Color.RED);txt(bc,"FLORIDA MAN",320f,16f,15f,Color.YELLOW,true);txt(bc,"POOL NOODLE PANIC • LEVEL 1 • WAVE $wave/3",320f,30f,7f,Color.WHITE,true);txt(bc,"SCORE $score",630f,14f,9f,Color.WHITE,false);p.textAlign=Paint.Align.RIGHT;bc.drawText("COLD ONES x $cans",630f,29f,p);p.textAlign=Paint.Align.LEFT;if(combo>1)txt(bc,"COMBO x$combo",505f,48f,9f,Color.YELLOW)}
+  fun controls(){col(Color.argb(135,10,18,28));bc.drawCircle(48f,322f,27f,p);bc.drawCircle(558f,322f,23f,p);bc.drawCircle(610f,322f,23f,p);txt(bc,"JUMP",558f,325f,8f,Color.WHITE,true);txt(bc,"WHACK",610f,325f,8f,Color.WHITE,true)}
+  fun panel(a:String,b:String){rect(bc,105f,126f,535f,220f,Color.argb(225,13,13,26));rect(bc,109f,130f,531f,216f,Color.rgb(34,29,57));txt(bc,a,320f,165f,20f,Color.YELLOW,true);txt(bc,b,320f,193f,10f,Color.WHITE,true)}
+  fun reset(){px=105f;py=G;vy=0f;cam=0f;hp=100;score=0;cans=0;dead=false;won=false;combo=0;birds.clear();birds.addAll(listOf(Bird(470f,2,2),Bird(760f,2,2),Bird(1080f,3,3),Bird(1450f,3,3),Bird(1880f,4,4),Bird(2470f,12,12,true)));beers.clear();beers.addAll(listOf(Beer(650f),Beer(1330f),Beer(2050f)))}
+  override fun onTouchEvent(e:MotionEvent):Boolean{val sx=e.x/width*W;val sy=e.y/height*H;when(e.actionMasked){MotionEvent.ACTION_DOWN,MotionEvent.ACTION_POINTER_DOWN->{val i=e.actionIndex;val id=e.getPointerId(i);val x=e.getX(i)/width*W;val y=e.getY(i)/height*H;if(!started||dead||won){if(dead||won)reset();started=true;return true};if(x<130&&y>270){joyId=id;joy=((x-48)/48).coerceIn(-1f,1f)}else if(x>585&&y>285){attack=.2f;attackId++}else if(x>525&&y>285&&py>=G-1){vy=-330f}};MotionEvent.ACTION_MOVE->{if(joyId>=0)for(i in 0 until e.pointerCount)if(e.getPointerId(i)==joyId){val x=e.getX(i)/width*W;joy=((x-48)/48).coerceIn(-1f,1f)}};MotionEvent.ACTION_UP,MotionEvent.ACTION_POINTER_UP,MotionEvent.ACTION_CANCEL->{if(e.getPointerId(e.actionIndex)==joyId){joyId=-1;joy=0f}}};return true}
+ }
 }
