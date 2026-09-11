@@ -24,27 +24,7 @@ jobs:
         run: |
           if [ -f tools/polish_113.py ]; then
             python3 tools/polish_113.py
-            python3 - <<'PY'
-          from pathlib import Path
-          path = Path("app/src/main/java/com/brannenservices/fieldassistant/MainActivity.kt")
-          s = path.read_text()
-          needle = '''        private fun currentWalkFrame(): Int {
-              return ((t * 6f).toInt() % AnimatedRaster.manWalk.size).coerceAtLeast(0)
-          }
-
-          '''
-          helper = '''        private fun smoothStep(v: Float): Float {
-              val x = v.coerceIn(0f, 1f)
-              return x * x * (3f - 2f * x)
-          }
-
-          '''
-          if "private fun smoothStep" not in s:
-              if s.count(needle) != 1:
-                  raise RuntimeError("currentWalkFrame anchor not found exactly once")
-              s = s.replace(needle, needle + helper, 1)
-              path.write_text(s)
-          PY
+            python3 -c 'from pathlib import Path; p=Path("app/src/main/java/com/brannenservices/fieldassistant/MainActivity.kt"); s=p.read_text(); a="        private fun startPunch(step: Int) {"; h="        private fun smoothStep(v: Float): Float {\n            val x = v.coerceIn(0f, 1f)\n            return x * x * (3f - 2f * x)\n        }\n\n"; assert s.count(a)==1; p.write_text(s if "private fun smoothStep" in s else s.replace(a,h+a,1))'
           fi
       - name: Build debug APK
         run: gradle assembleDebug
