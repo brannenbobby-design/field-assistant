@@ -23,7 +23,10 @@ class MainActivity : Activity() {
             val boss: Boolean = false,
             var hit: Int = -1,
             var flash: Float = 0f,
-            var dir: Int = -1
+            var dir: Int = -1,
+            var animT: Float = 0f,
+            var seen: Boolean = false,
+            var enterT: Float = 0f
         )
 
         data class Beer(val x: Float, var taken: Boolean = false)
@@ -32,6 +35,13 @@ class MainActivity : Activity() {
         private val H = 360
         private val G = 278f
         private val WORLD = 3000f
+
+        private val ATTACK_DURATION = .34f
+        private val ATTACK_ACTIVE_START = .28f
+        private val ATTACK_ACTIVE_END = .70f
+        private val NOODLE_LENGTH = 84f
+        private val walkHandX = floatArrayOf(28f, 18f, 18f, 24f)
+        private val walkHandY = floatArrayOf(48f, 62f, 62f, 54f)
 
         private val frame = Bitmap.createBitmap(W, H, Bitmap.Config.ARGB_8888)
         private val c = Canvas(frame)
@@ -135,6 +145,17 @@ class MainActivity : Activity() {
                 b.flash = max(0f, b.flash - dt)
                 if (b.hp <= 0) return@forEach
 
+                val screenX = b.x - cam
+                if (!b.seen && screenX in -50f..690f) {
+                    b.seen = true
+                    b.animT = 0f
+                    b.enterT = 0f
+                }
+                if (b.seen) {
+                    b.animT += dt
+                    b.enterT += dt
+                }
+
                 val dx = px - b.x
                 b.dir = if (dx > 0f) 1 else -1
 
@@ -142,9 +163,26 @@ class MainActivity : Activity() {
                     b.x += b.dir * (if (b.boss) 78f else 55f) * dt
                 }
 
-                if (attack > 0f && b.hit != attackId) {
-                    val d = (b.x - px) * face
-                    if (d in 5f..105f && py > G - 90f) {
+                val progress = attackProgress()
+                if (attack > 0f &&
+                    progress in ATTACK_ACTIVE_START..ATTACK_ACTIVE_END &&
+                    b.hit != attackId
+                ) {
+                    val anchor = playerHandAnchor()
+                    val handX = px + face * anchor[0]
+                    val handY = py - anchor[1]
+                    val angle = attackNoodleAngle(progress, face)
+                    val curve = noodleCurve(handX, handY, angle, attackNoodleBend(progress, face))
+                    val midX = .25f * curve[0] + .5f * curve[2] + .25f * curve[4]
+                    val midY = .25f * curve[1] + .5f * curve[3] + .25f * curve[5]
+                    val targetY = G - if (b.boss) 62f else 48f
+                    val hitRadius = if (b.boss) 43f else 30f
+                    val hitDistance = min(
+                        pointSegmentDistance(b.x, targetY, curve[0], curve[1], midX, midY),
+                        pointSegmentDistance(b.x, targetY, midX, midY, curve[4], curve[5])
+                    )
+
+                    if (hitDistance <= hitRadius) {
                         b.hp--
                         b.hit = attackId
                         b.flash = .1f
@@ -157,9 +195,7 @@ class MainActivity : Activity() {
                     }
                 }
 
-                if (abs(b.x - px) < (if (b.boss) 48f else 31f) &&
-                    py > G - 55f && hurt <= 0f
-                ) {
+                if (abs(b.x - px) < (if (b.boss) 48f else 31f) && py > G - 55f && hurt <= 0f) {
                     hp = max(0, hp - (if (b.boss) 18 else 10))
                     hurt = .7f
                     px += if (dx > 0f) -55f else 55f
@@ -178,6 +214,80 @@ class MainActivity : Activity() {
             }
 
             if (birds.last().hp <= 0 && px > 2780f) won = true
+        }
+
+        private fun attackProgress(): Float {
+            return if (attack <= 0f) 1f else (1f - attack / ATTACK_DURATION).coerceIn(0f, 1f)
+        }
+
+        private fun smoothStep(v: Float): Float {
+            val x = v.coerceIn(0f, 1f)
+            return x * x * (3f - 2f * x)
+        }
+
+        private fun currentWalkFrame(): Int {
+            return ((t * 6f).toInt() % AnimatedRaster.manWalk.size).coerceAtLeast(0)
+        }
+
+        private fun playerHandAnchor(): FloatArray {
+            val airborne = py < G - 1f
+            val moving = abs(joy) > .12f && !airborne
+            return when {
+                airborne -> floatArrayOf(-22f, 52f)
+                moving -> {
+                    val frameIndex = currentWalkFrame()
+                    floatArrayOf(walkHandX[frameIndex], walkHandY[frameIndex])
+                }
+                else -> floatArrayOf(31f, 43f)
+            }
+        }
+
+        private fun attackNoodleAngle(progress: Float, facing: Int): Float {
+            val local = when {
+                progress < .18f -> {
+                    val q = smoothStep(progress / .18f)
+                    -18f + (-66f + 18f) * q
+                }
+                progress < .72f -> {
+                    val q = smoothStep((progress - .18f) / .54f)
+                    -66f + (56f + 66f) * q
+                }
+                else -> {
+                    val q = smoothStep((progress - .72f) / .28f)
+                    56f + (-18f - 56f) * q
+                }
+            }
+            return if (facing > 0) local else 180f - local
+        }
+
+        private fun attackNoodleBend(progress: Float, facing: Int): Float {
+            val swing = ((progress - .18f) / .54f).coerceIn(0f, 1f)
+            val flex = sin(swing * Math.PI).toFloat() * 9f
+            return flex * if (facing > 0) 1f else -1f
+        }
+
+        private fun noodleCurve(handX: Float, handY: Float, angleDeg: Float, bend: Float): FloatArray {
+            val angle = Math.toRadians(angleDeg.toDouble())
+            val ux = cos(angle).toFloat()
+            val uy = sin(angle).toFloat()
+            val nx = -uy
+            val ny = ux
+            val endX = handX + ux * NOODLE_LENGTH
+            val endY = handY + uy * NOODLE_LENGTH
+            val controlX = handX + ux * (NOODLE_LENGTH * .52f) + nx * bend
+            val controlY = handY + uy * (NOODLE_LENGTH * .52f) + ny * bend
+            return floatArrayOf(handX, handY, controlX, controlY, endX, endY)
+        }
+
+        private fun pointSegmentDistance(qx: Float, qy: Float, ax: Float, ay: Float, bx: Float, by: Float): Float {
+            val dx = bx - ax
+            val dy = by - ay
+            val lenSq = dx * dx + dy * dy
+            if (lenSq <= .001f) return hypot(qx - ax, qy - ay)
+            val u = (((qx - ax) * dx + (qy - ay) * dy) / lenSq).coerceIn(0f, 1f)
+            val cx = ax + dx * u
+            val cy = ay + dy * u
+            return hypot(qx - cx, qy - cy)
         }
 
         private fun hazard(push: Int) {
@@ -407,23 +517,17 @@ class MainActivity : Activity() {
             val x = px - cam
             val airborne = py < G - 1f
             val moving = abs(joy) > .12f && !airborne
-            val walkFrame = ((t * 6f).toInt() % AnimatedRaster.manWalk.size).coerceAtLeast(0)
+            val walkFrame = currentWalkFrame()
             val bmp = when {
                 airborne -> AnimatedRaster.manJump
                 moving -> AnimatedRaster.manWalk[walkFrame]
                 else -> SpriteArt.man
             }
 
-            // Let the real raster frames provide the gait. Only idle breathing remains.
             val bob = if (!moving && !airborne) sin(t * 2.4f) * .4f else 0f
             val bodyH = if (airborne) 108f else 112f
             val bodyW = bodyH * bmp.width.toFloat() / bmp.height.toFloat()
-            val dst = RectF(
-                x - bodyW / 2f,
-                py - bodyH + bob,
-                x + bodyW / 2f,
-                py + bob
-            )
+            val dst = RectF(x - bodyW / 2f, py - bodyH + bob, x + bodyW / 2f, py + bob)
 
             c.save()
             c.scale(face.toFloat(), 1f, x, py)
@@ -431,73 +535,91 @@ class MainActivity : Activity() {
             c.drawBitmap(bmp, null, dst, pix)
             c.restore()
 
-            // Frame-specific hand anchors keep the pool noodle attached to the fist.
-            val walkHandX = floatArrayOf(28f, 18f, 18f, 24f)
-            val walkHandY = floatArrayOf(48f, 62f, 62f, 54f)
-            val anchorX: Float
-            val anchorY: Float
-            when {
-                airborne -> {
-                    // Jump art grips the noodle on the back/left hand.
-                    anchorX = -22f
-                    anchorY = 52f
-                }
-                moving -> {
-                    anchorX = walkHandX[walkFrame]
-                    anchorY = walkHandY[walkFrame]
-                }
-                else -> {
-                    anchorX = 31f
-                    anchorY = 43f
-                }
+            val drawOverlayNoodle = !airborne || attack > 0f
+            if (drawOverlayNoodle) {
+                val anchor = playerHandAnchor()
+                val handX = x + face * anchor[0]
+                val handY = py - anchor[1] + bob
+                val progress = attackProgress()
+                val deg = if (attack > 0f) attackNoodleAngle(progress, face) else if (face > 0) -18f else 198f
+                val bend = if (attack > 0f) attackNoodleBend(progress, face) else if (face > 0) 2.5f else -2.5f
+                drawNoodle(handX, handY, deg, bend)
+
+                col(Color.rgb(226, 145, 91))
+                c.drawCircle(handX, handY, 5.5f, p)
+            }
+        }
+
+        private fun drawNoodle(handX: Float, handY: Float, angleDeg: Float, bend: Float) {
+            val curve = noodleCurve(handX, handY, angleDeg, bend)
+            val path = Path().apply {
+                moveTo(curve[0], curve[1])
+                quadTo(curve[2], curve[3], curve[4], curve[5])
             }
 
-            val handX = x + face * anchorX
-            val handY = py - anchorY + bob
-            val phase = (1f - attack / .2f).coerceIn(0f, 1f)
-            val deg = when {
-                attack > 0f -> if (face > 0) -38f + phase * 92f else 218f - phase * 92f
-                airborne -> if (face > 0) -108f else -72f
-                else -> if (face > 0) -18f else 198f
-            }
-
-            val angle = Math.toRadians(deg.toDouble())
-            val ux = cos(angle).toFloat()
-            val uy = sin(angle).toFloat()
-            val sx = handX - face * 3f
-            val sy = handY + 2f
-            val ex = handX + ux * 78f
-            val ey = handY + uy * 78f
-
-            col(Color.rgb(11, 92, 166))
-            p.strokeWidth = 13f
+            p.style = Paint.Style.STROKE
             p.strokeCap = Paint.Cap.ROUND
-            c.drawLine(sx, sy, ex, ey, p)
+            p.strokeJoin = Paint.Join.ROUND
+            p.color = Color.rgb(9, 70, 132)
+            p.strokeWidth = 15f
+            c.drawPath(path, p)
 
-            col(Color.rgb(54, 188, 255))
-            p.strokeWidth = 9f
-            c.drawLine(sx, sy - 1f, ex, ey - 1f, p)
+            p.color = Color.rgb(48, 174, 244)
+            p.strokeWidth = 11f
+            c.drawPath(path, p)
 
-            col(Color.rgb(142, 225, 255))
-            p.strokeWidth = 2f
-            c.drawLine(sx + ux * 8f, sy - 3f, ex - ux * 8f, ey - 3f, p)
+            val angle = Math.toRadians(angleDeg.toDouble())
+            val nx = -sin(angle).toFloat()
+            val ny = cos(angle).toFloat()
+            val highlight = Path().apply {
+                moveTo(curve[0] - nx * 2.1f, curve[1] - ny * 2.1f)
+                quadTo(curve[2] - nx * 2.1f, curve[3] - ny * 2.1f, curve[4] - nx * 2.1f, curve[5] - ny * 2.1f)
+            }
+            p.color = Color.rgb(149, 224, 255)
+            p.strokeWidth = 2.5f
+            c.drawPath(highlight, p)
 
-            col(Color.rgb(226, 145, 91))
-            c.drawCircle(handX, handY, 5.5f, p)
+            p.style = Paint.Style.FILL
             p.strokeCap = Paint.Cap.BUTT
+            p.strokeJoin = Paint.Join.MITER
+
+            col(Color.rgb(8, 65, 124))
+            c.drawCircle(curve[4], curve[5], 7f, p)
+            col(Color.rgb(45, 171, 241))
+            c.drawCircle(curve[4], curve[5], 5f, p)
+            col(Color.rgb(159, 229, 255))
+            c.drawCircle(curve[4] - nx * 1.5f, curve[5] - ny * 1.5f, 1.7f, p)
         }
 
         private fun bird(b: Bird) {
-            val x = b.x - cam
-            if (x !in -120f..760f) return
+            val rawX = b.x - cam
+            if (rawX !in -120f..760f) return
 
             val scale = if (b.boss) 1.48f else 1f
             val moving = abs(px - b.x) < (if (b.boss) 390f else 260f)
-            val frameRate = if (b.boss) 5f else 5.5f
-            val frameIndex = (((t * frameRate) + b.x * .01f).toInt() % AnimatedRaster.flWalk.size)
-                .coerceAtLeast(0)
-            val bmp = if (moving) AnimatedRaster.flWalk[frameIndex] else SpriteArt.flamingo
-            val bob = if (moving) 0f else sin(t * 2.1f + b.x * .01f) * .5f
+            val introDuration = .30f
+            val entryProgress = (b.enterT / introDuration).coerceIn(0f, 1f)
+
+            val bmp = when {
+                !b.seen -> SpriteArt.flamingo
+                b.enterT < .09f -> SpriteArt.flamingo
+                b.enterT < .16f -> AnimatedRaster.flWalk[0]
+                b.enterT < .23f -> AnimatedRaster.flWalk[1]
+                b.enterT < introDuration -> AnimatedRaster.flWalk[2]
+                moving -> {
+                    val frameRate = if (b.boss) 5f else 5.5f
+                    val frameIndex = (((b.animT - introDuration).coerceAtLeast(0f) * frameRate).toInt() % AnimatedRaster.flWalk.size).coerceAtLeast(0)
+                    AnimatedRaster.flWalk[frameIndex]
+                }
+                else -> SpriteArt.flamingo
+            }
+
+            val entryOffset = if (b.seen && b.enterT < introDuration) {
+                -b.dir * (1f - smoothStep(entryProgress)) * 10f
+            } else 0f
+            val x = rawX + entryOffset
+            val bob = if (!moving && b.enterT >= introDuration) sin(b.animT * 2.1f) * .5f else 0f
+
             val h = 96f * scale
             val w = h * bmp.width.toFloat() / bmp.height.toFloat()
             val dst = RectF(x - w / 2f, G - h + bob, x + w / 2f, G + bob)
@@ -621,8 +743,8 @@ class MainActivity : Activity() {
                     if (x < 130f && y > 270f) {
                         joyId = id
                         joy = ((x - 48f) / 48f).coerceIn(-1f, 1f)
-                    } else if (x > 585f && y > 285f) {
-                        attack = .2f
+                    } else if (x > 585f && y > 285f && attack <= 0f) {
+                        attack = ATTACK_DURATION
                         attackId++
                     } else if (x > 525f && y > 285f && py >= G - 1f) {
                         vy = -330f
