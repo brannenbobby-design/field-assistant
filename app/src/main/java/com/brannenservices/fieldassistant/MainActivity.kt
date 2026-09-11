@@ -407,52 +407,58 @@ class MainActivity : Activity() {
             val x = px - cam
             val airborne = py < G - 1f
             val moving = abs(joy) > .12f && !airborne
-            val walkFrame = ((t * 8f).toInt() % AnimatedRaster.manWalk.size).coerceAtLeast(0)
+            val walkFrame = ((t * 6f).toInt() % AnimatedRaster.manWalk.size).coerceAtLeast(0)
             val bmp = when {
                 airborne -> AnimatedRaster.manJump
                 moving -> AnimatedRaster.manWalk[walkFrame]
                 else -> SpriteArt.man
             }
 
-            val cycle = t * 10f
-            val bob = when {
-                airborne -> 0f
-                moving -> abs(sin(cycle)) * 2.5f
-                else -> sin(t * 2.4f) * .6f
-            }
-            val sway = if (moving) sin(cycle) * 1.8f else 0f
+            // Let the real raster frames provide the gait. Only idle breathing remains.
+            val bob = if (!moving && !airborne) sin(t * 2.4f) * .4f else 0f
             val bodyH = if (airborne) 108f else 112f
             val bodyW = bodyH * bmp.width.toFloat() / bmp.height.toFloat()
             val dst = RectF(
-                x - bodyW / 2f + sway,
+                x - bodyW / 2f,
                 py - bodyH + bob,
-                x + bodyW / 2f + sway,
+                x + bodyW / 2f,
                 py + bob
             )
 
             c.save()
             c.scale(face.toFloat(), 1f, x, py)
-            if (moving) c.rotate(sin(cycle) * 1.7f, x, py - 50f)
-            if (airborne) c.rotate((-vy / 330f).coerceIn(-1f, 1f) * 3.5f, x, py - 50f)
+            if (airborne) c.rotate((-vy / 330f).coerceIn(-1f, 1f) * 1.5f, x, py - 50f)
             c.drawBitmap(bmp, null, dst, pix)
             c.restore()
 
-            // Keep a visible gait even while the raster frame set is still being expanded.
-            if (moving) {
-                val step = sin(cycle)
-                col(Color.rgb(226, 145, 91))
-                p.strokeWidth = 4f
-                c.drawLine(x - 11, py - 2, x - 11 - step * 7, py + 4, p)
-                c.drawLine(x + 10, py - 2, x + 10 + step * 7, py + 4, p)
+            // Frame-specific hand anchors keep the pool noodle attached to the fist.
+            val walkHandX = floatArrayOf(28f, 18f, 18f, 24f)
+            val walkHandY = floatArrayOf(48f, 62f, 62f, 54f)
+            val anchorX: Float
+            val anchorY: Float
+            when {
+                airborne -> {
+                    // Jump art grips the noodle on the back/left hand.
+                    anchorX = -22f
+                    anchorY = 52f
+                }
+                moving -> {
+                    anchorX = walkHandX[walkFrame]
+                    anchorY = walkHandY[walkFrame]
+                }
+                else -> {
+                    anchorX = 31f
+                    anchorY = 43f
+                }
             }
 
-            val handX = x + face * (if (airborne) 29f else 31f) + sway
-            val handY = py - (if (airborne) 50f else 43f) + bob
+            val handX = x + face * anchorX
+            val handY = py - anchorY + bob
             val phase = (1f - attack / .2f).coerceIn(0f, 1f)
-            val deg = if (attack > 0f) {
-                if (face > 0) -38f + phase * 92f else 218f - phase * 92f
-            } else {
-                if (face > 0) -18f else 198f
+            val deg = when {
+                attack > 0f -> if (face > 0) -38f + phase * 92f else 218f - phase * 92f
+                airborne -> if (face > 0) -108f else -72f
+                else -> if (face > 0) -18f else 198f
             }
 
             val angle = Math.toRadians(deg.toDouble())
@@ -487,20 +493,17 @@ class MainActivity : Activity() {
 
             val scale = if (b.boss) 1.48f else 1f
             val moving = abs(px - b.x) < (if (b.boss) 390f else 260f)
-            val frameIndex = (((t * (if (b.boss) 6f else 7f)) + b.x * .01f).toInt() % AnimatedRaster.flWalk.size)
+            val frameRate = if (b.boss) 5f else 5.5f
+            val frameIndex = (((t * frameRate) + b.x * .01f).toInt() % AnimatedRaster.flWalk.size)
                 .coerceAtLeast(0)
             val bmp = if (moving) AnimatedRaster.flWalk[frameIndex] else SpriteArt.flamingo
-            val cycle = t * (if (b.boss) 7f else 8.5f) + b.x * .02f
-            val bob = if (moving) abs(sin(cycle)) * 2.5f else sin(cycle * .4f)
-            val stride = if (moving) sin(cycle) * 4.5f * scale else 0f
+            val bob = if (moving) 0f else sin(t * 2.1f + b.x * .01f) * .5f
             val h = 96f * scale
             val w = h * bmp.width.toFloat() / bmp.height.toFloat()
             val dst = RectF(x - w / 2f, G - h + bob, x + w / 2f, G + bob)
 
             c.save()
             c.scale(b.dir.toFloat(), 1f, x, G)
-            if (moving) c.rotate(sin(cycle) * 1.5f, x, G - 48f * scale)
-
             if (b.flash > 0f) {
                 p.colorFilter = PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP)
                 c.drawBitmap(bmp, null, dst, p)
@@ -509,13 +512,6 @@ class MainActivity : Activity() {
                 c.drawBitmap(bmp, null, dst, pix)
             }
             c.restore()
-
-            if (moving) {
-                col(Color.rgb(205, 68, 113))
-                p.strokeWidth = 3f
-                c.drawLine(x - 10f * scale, G - 15f * scale, x - 10f * scale + stride, G, p)
-                c.drawLine(x + 8f * scale, G - 15f * scale, x + 8f * scale - stride, G, p)
-            }
 
             if (b.boss) {
                 text("ALPHA", x, G - h - 7f, 8f, Color.YELLOW, true)
