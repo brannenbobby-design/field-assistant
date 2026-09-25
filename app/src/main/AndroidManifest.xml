@@ -6,7 +6,7 @@
             android:name=".CaptureService"
             android:exported="false"
             android:foregroundServiceType="mediaProjection"/>
-        <activity android:name=".CarActivity" android:screenOrientation="landscape" android:resizeableActivity="true" android:exported="true">
+        <activity android:name=".CarActivity" android:resizeableActivity="true" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.CAR_LAUNCHER"/>
