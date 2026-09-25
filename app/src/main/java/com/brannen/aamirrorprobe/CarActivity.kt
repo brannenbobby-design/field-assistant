@@ -40,7 +40,10 @@ class CarActivity : Activity() {
             or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
         image = ImageView(this).apply {
             setBackgroundColor(Color.BLACK)
-            scaleType = ImageView.ScaleType.CENTER_CROP
+            // Preserve the Galaxy S24 Ultra's complete 19.5:9 landscape frame.
+            // Any mismatch with Uconnect becomes a small black bar instead of
+            // cutting off the phone's edges.
+            scaleType = ImageView.ScaleType.FIT_CENTER
         }
         message = TextView(this).apply {
             text = "Waiting for phone capture…"

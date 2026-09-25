@@ -1,4 +1,4 @@
-# AA Mirror Probe v0.5
+# AA Mirror Probe v0.6
 
 Purpose: determine whether a Galaxy phone can expose a custom full-screen Activity to Android Auto/Uconnect without an external dongle, and separately verify Android MediaProjection permission.
 
@@ -12,12 +12,12 @@ Important result from Google's current Android Auto documentation: as of Septemb
 5. Open it. If the AA MIRROR PROBE screen appears on Uconnect, Test 1 passes.
 6. Tap REQUEST PHONE SCREEN CAPTURE on the phone/head unit as available and grant the Android screen-capture prompt. If status changes, Test 2 passes.
 
-## v0.5 test
+## v0.6 test
 1. Open AA Mirror Probe on the phone.
 2. Tap START SCREEN CAPTURE and approve Android's warning.
 3. Connect Android Auto and, while parked, open AA Mirror Probe on Uconnect.
 4. The car Activity polls frames produced by the phone-side foreground capture service.
 5. The Android Auto Activity keeps the proven landscape launcher declaration required by this Uconnect implementation.
-6. Captured frames now remove large black rotation/letterbox bands and use center-crop scaling to fill the entire upper Android Auto pane.
+6. Captured frames remove large black rotation/letterbox bands, then use aspect-fit scaling so the Galaxy S24 Ultra's complete 19.5:9 landscape frame is visible without cropping.
 
 This is still a capability probe. It uses Android's normal MediaProjection consent and Android Auto's parked-app route; it does not bypass motion restrictions.
