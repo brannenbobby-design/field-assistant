@@ -40,7 +40,7 @@ class CarActivity : Activity() {
             or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
         image = ImageView(this).apply {
             setBackgroundColor(Color.BLACK)
-            scaleType = ImageView.ScaleType.FIT_CENTER
+            scaleType = ImageView.ScaleType.CENTER_CROP
         }
         message = TextView(this).apply {
             text = "Waiting for phone capture…"

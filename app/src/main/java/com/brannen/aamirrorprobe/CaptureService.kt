@@ -76,9 +76,11 @@ class CaptureService : Service() {
                 val padded = Bitmap.createBitmap(paddedWidth, height, Bitmap.Config.ARGB_8888)
                 padded.copyPixelsFromBuffer(plane.buffer)
                 val cropped = Bitmap.createBitmap(padded, 0, 0, width, height)
+                val active = cropLetterbox(cropped)
                 val out = ByteArrayOutputStream()
-                cropped.compress(Bitmap.CompressFormat.JPEG, 70, out)
+                active.compress(Bitmap.CompressFormat.JPEG, 75, out)
                 latestJpeg.set(out.toByteArray())
+                if (active !== cropped) active.recycle()
                 cropped.recycle()
                 padded.recycle()
             } finally {
@@ -92,6 +94,69 @@ class CaptureService : Service() {
             reader?.surface, null, handler
         )
         running = true
+    }
+
+    /**
+     * MediaProjection keeps the dimensions it had when capture started. If the
+     * phone rotates later, Android letterboxes the live screen inside that old
+     * canvas. Remove only large, near-black outer bands; leave ordinary dark
+     * app backgrounds alone.
+     */
+    private fun cropLetterbox(source: Bitmap): Bitmap {
+        val w = source.width
+        val h = source.height
+        val step = (minOf(w, h) / 240).coerceAtLeast(4)
+
+        fun rowHasContent(y: Int): Boolean {
+            var bright = 0
+            var samples = 0
+            var x = 0
+            while (x < w) {
+                val c = source.getPixel(x, y)
+                val max = maxOf((c shr 16) and 255, (c shr 8) and 255, c and 255)
+                if (max > 22) bright++
+                samples++
+                x += step
+            }
+            return bright >= maxOf(2, samples / 45)
+        }
+
+        fun colHasContent(x: Int, top: Int, bottom: Int): Boolean {
+            var bright = 0
+            var samples = 0
+            var y = top
+            while (y <= bottom) {
+                val c = source.getPixel(x, y)
+                val max = maxOf((c shr 16) and 255, (c shr 8) and 255, c and 255)
+                if (max > 22) bright++
+                samples++
+                y += step
+            }
+            return bright >= maxOf(2, samples / 45)
+        }
+
+        var top = 0
+        while (top < h - step && !rowHasContent(top)) top += step
+        var bottom = h - 1
+        while (bottom > top + step && !rowHasContent(bottom)) bottom -= step
+        var left = 0
+        while (left < w - step && !colHasContent(left, top, bottom)) left += step
+        var right = w - 1
+        while (right > left + step && !colHasContent(right, top, bottom)) right -= step
+
+        val removedX = left + (w - 1 - right)
+        val removedY = top + (h - 1 - bottom)
+        if (removedX < w / 12 && removedY < h / 12) return source
+
+        val margin = step * 2
+        left = (left - margin).coerceAtLeast(0)
+        top = (top - margin).coerceAtLeast(0)
+        right = (right + margin).coerceAtMost(w - 1)
+        bottom = (bottom + margin).coerceAtMost(h - 1)
+        val cropW = right - left + 1
+        val cropH = bottom - top + 1
+        if (cropW < w / 4 || cropH < h / 4) return source
+        return Bitmap.createBitmap(source, left, top, cropW, cropH)
     }
 
     override fun onDestroy() {
