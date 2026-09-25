@@ -13,8 +13,8 @@ android {
         applicationId = "com.brannen.aamirrorprobe"
         minSdk = 28
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3"
+        versionCode = 4
+        versionName = "0.4"
     }
 }
 dependencies {
