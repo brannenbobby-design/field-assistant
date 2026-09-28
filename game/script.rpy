@@ -124,11 +124,14 @@ label wayne_house:
     "Home. The AC is trying its best, which is more than can be said for Wayne."
     menu:
         "Check phone":
-            show screen phone_screen
-            $ renpy.pause(hard=True)
+            call screen phone_screen
+        "Search for Kelsey's cooler" if "The Cooler Incident" in active_quests and not cooler_found:
+            jump cooler_search
         "Take a nap (advance time)":
             $ advance_time()
             "Against all odds, this counts as planning."
+        "Go to sleep for the night" if tod == "Night" and not tuesday_started:
+            jump tuesday_morning
         "Back to map":
             pass
     jump town_map
@@ -156,6 +159,12 @@ label dale_house:
 
 label gator_mart:
     "The Gator Mart smells like coffee, bait, and an electrical fire nobody has investigated."
+    if cooler_found and "The Cooler Incident" in active_quests:
+        menu:
+            "Text Kelsey and return her cooler":
+                jump return_cooler
+            "Keep it for now":
+                pass
     if quest_boat and not fuel_acquired:
         menu:
             "Buy fuel can and gas — $12":
@@ -251,6 +260,8 @@ label sand_trap_evening:
     if "The Cooler Incident" not in active_quests:
         $ active_quests.append("The Cooler Incident")
     "NEW QUEST: The Cooler Incident"
+    $ tod = "Night"
+    "By the time Wayne leaves the Sand Trap, it's officially night."
     jump town_map
 
 label cooler_search:
