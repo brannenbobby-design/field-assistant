@@ -27,6 +27,15 @@ init python:
         if i < len(periods)-1:
             tod = periods[i+1]
 
+screen florida_backdrop(title="GULF COAST"):
+    add Solid("#17343b")
+    frame:
+        background Solid("#0c171bbb")
+        xfill True
+        ysize 110
+        text "[title]" style "fm_title" xalign .5 yalign .5
+    text "FLORIDA MAN: UNSUPERVISED" size 24 color "#9fd8df" xalign .02 yalign .97
+
 screen hud():
     frame:
         xalign 0.02
@@ -40,6 +49,7 @@ screen hud():
 
 screen phone_screen():
     modal True
+    add Solid("#0b2027cc")
     frame:
         xalign .5
         yalign .5
@@ -74,7 +84,7 @@ screen town_map_screen():
         padding (30, 25)
         vbox:
             spacing 14
-            text "GULF COAST — WHERE TO?" size 38
+            text "GULF COAST — WHERE TO?" style "fm_title"
             textbutton "Wayne's House" action Jump("wayne_house")
             textbutton "Dale's Place" action Jump("dale_house")
             textbutton "Gator Mart" action Jump("gator_mart")
@@ -86,6 +96,7 @@ screen town_map_screen():
 
 label start:
     scene black
+    show screen florida_backdrop("MONDAY MORNING")
     centered "6:47 AM — MONDAY"
     "A phone alarm screams for the third time."
     w "Why am I on the couch?"
