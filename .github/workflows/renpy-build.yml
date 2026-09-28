@@ -27,7 +27,7 @@ jobs:
       - name: Build Windows test distribution
         run: |
           mkdir -p "$GITHUB_WORKSPACE/dist"
-          ./renpy-8.5.3-sdk/renpy.sh launcher distribute "$GITHUB_WORKSPACE" --destination "$GITHUB_WORKSPACE/dist" --package win --no-update
+          ./renpy-8.5.3-sdk/renpy.sh ./renpy-8.5.3-sdk/launcher distribute "$GITHUB_WORKSPACE" --destination "$GITHUB_WORKSPACE/dist" --package win --no-update
 
       - name: Upload test build
         uses: actions/upload-artifact@v4
