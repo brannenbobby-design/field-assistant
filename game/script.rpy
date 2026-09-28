@@ -10,8 +10,79 @@ default charm = 0
 default grit = 0
 default street_smarts = 0
 default dumb_luck = 0
-default inventory = []
+default inventory = ["Phone", "Wallet", "Mystery Key"]
+default active_quests = []
+default completed_quests = []
 default quest_opportunity = False
+default quest_boat = False
+default battery_acquired = False
+default fuel_acquired = False
+default key_acquired = False
+
+init python:
+    periods = ["Morning", "Afternoon", "Evening", "Night"]
+    def advance_time():
+        global tod
+        i = periods.index(tod)
+        if i < len(periods)-1:
+            tod = periods[i+1]
+
+screen hud():
+    frame:
+        xalign 0.02
+        yalign 0.02
+        padding (14, 10)
+        vbox:
+            text "[day] — [tod]"
+            text "$[money:.2f]   Gas: [gas]%"
+    textbutton "PHONE" action Show("phone_screen") xalign 0.98 yalign 0.02
+    textbutton "MAP" action Jump("town_map") xalign 0.98 yalign 0.09
+
+screen phone_screen():
+    modal True
+    frame:
+        xalign .5
+        yalign .5
+        xsize 720
+        ysize 760
+        padding (28, 24)
+        vbox:
+            spacing 18
+            text "WAYNE'S PHONE" size 42
+            text "Messages" size 28
+            text "LANDLORD: Rent?"
+            text "KELSEY: I need my cooler back. And don't tell me you lost it."
+            text "DALE: You awake? Got an opportunity."
+            null height 12
+            text "Active Quests" size 28
+            if active_quests:
+                for q in active_quests:
+                    text "• [q]"
+            else:
+                text "Nothing active. Somehow."
+            null height 12
+            text "Inventory" size 28
+            text ", ".join(inventory)
+            textbutton "Close" action Hide("phone_screen")
+
+screen town_map_screen():
+    modal True
+    frame:
+        xalign .5
+        yalign .5
+        xsize 900
+        padding (30, 25)
+        vbox:
+            spacing 14
+            text "GULF COAST — WHERE TO?" size 38
+            textbutton "Wayne's House" action Jump("wayne_house")
+            textbutton "Dale's Place" action Jump("dale_house")
+            textbutton "Gator Mart" action Jump("gator_mart")
+            textbutton "Beach" action Jump("beach")
+            if tod in ["Afternoon", "Evening", "Night"]:
+                textbutton "The Sand Trap" action Jump("sand_trap")
+            else:
+                text "The Sand Trap — too early for respectable bad decisions."
 
 label start:
     scene black
@@ -40,23 +111,113 @@ label start:
         "No.":
             d "Cool. I'll pick you up in 20."
     $ quest_opportunity = True
+    $ active_quests.append("An Opportunity")
     "QUEST STARTED: An Opportunity"
+    show screen hud
     jump town_map
 
 label town_map:
-    "Prototype map unlocked: Wayne's House, Dale's Place, Gator Mart, Beach, The Sand Trap."
+    call screen town_map_screen
+    jump town_map
+
+label wayne_house:
+    "Home. The AC is trying its best, which is more than can be said for Wayne."
     menu:
-        "Go to Dale's Place":
-            jump dale_house
-        "Stay home":
-            w "Probably the smartest thing I'll do all day."
-            jump town_map
+        "Check phone":
+            show screen phone_screen
+            $ renpy.pause(hard=True)
+        "Take a nap (advance time)":
+            $ advance_time()
+            "Against all odds, this counts as planning."
+        "Back to map":
+            pass
+    jump town_map
 
 label dale_house:
-    $ tod = "Afternoon"
-    "An airboat is sitting halfway across Dale's lawn. It is not on a trailer."
-    w "I'm going to regret asking this."
-    d "Good news. I got an opportunity."
-    "QUEST STARTED: Boat With No Name"
-    "The airboat needs fuel, a battery, and an ignition key."
-    return
+    if not quest_boat:
+        $ advance_time()
+        "An airboat is sitting halfway across Dale's lawn. It is not on a trailer."
+        w "I'm going to regret asking this."
+        d "Good news. I got an opportunity."
+        d "Six hundred bucks. You get a hundred-fifty if we get her running."
+        w "Whose boat is it?"
+        d "That's kind of a philosophical question."
+        $ quest_boat = True
+        $ active_quests.remove("An Opportunity")
+        $ completed_quests.append("An Opportunity")
+        $ active_quests.append("Boat With No Name")
+        "QUEST STARTED: Boat With No Name"
+        "Needs: fuel, battery, ignition key."
+    else:
+        "The airboat remains exactly where an airboat should not be."
+        if battery_acquired and fuel_acquired and key_acquired:
+            jump finish_boat
+    jump town_map
+
+label gator_mart:
+    "The Gator Mart smells like coffee, bait, and an electrical fire nobody has investigated."
+    if quest_boat and not fuel_acquired:
+        menu:
+            "Buy fuel can and gas — $12":
+                if money >= 12:
+                    $ money -= 12
+                    $ fuel_acquired = True
+                    $ inventory.append("Fuel Can")
+                    "Fuel acquired."
+                else:
+                    "Your wallet disagrees."
+            "Ask the clerk if Dale has a tab":
+                $ charm += 1
+                "CLERK: He did. Past tense."
+            "Leave":
+                pass
+    jump town_map
+
+label beach:
+    "White sand, Gulf water, and at least one person who brought a Bluetooth speaker nobody asked for."
+    if quest_boat and not key_acquired:
+        "Something metallic is half buried near an abandoned cooler."
+        menu:
+            "Pick it up":
+                $ key_acquired = True
+                $ inventory.append("Unlabeled Boat Key")
+                $ dumb_luck += 1
+                "An unlabeled ignition key. Surely this is fine."
+            "Leave it alone":
+                $ street_smarts += 1
+    jump town_map
+
+label sand_trap:
+    "The Sand Trap: cold beer, questionable karaoke, and several people who owe Dale money."
+    if quest_boat and not battery_acquired:
+        d "Peanut says there's a spare marine battery behind the shed."
+        menu:
+            "Buy a used battery from Peanut — $10":
+                if money >= 10:
+                    $ money -= 10
+                    $ battery_acquired = True
+                    $ inventory.append("Marine Battery")
+                    "Peanut accepts ten dollars and absolutely no questions."
+                else:
+                    "Peanut looks at your wallet and laughs."
+            "Offer to do Peanut a favor instead":
+                $ grit += 1
+                $ battery_acquired = True
+                $ inventory.append("Marine Battery")
+                "PEANUT: Fine. But now you owe me."
+            "Walk away":
+                pass
+    jump town_map
+
+label finish_boat:
+    "Wayne installs the battery, pours in the fuel, and tries the mystery key."
+    "The airboat coughs twice, launches a cloud of smoke, and starts."
+    d "See? Basically legal."
+    $ money += 150
+    $ active_quests.remove("Boat With No Name")
+    $ completed_quests.append("Boat With No Name")
+    "QUEST COMPLETE: Boat With No Name"
+    "Wayne earned $150."
+    $ tod = "Evening"
+    "Monday evening is now open."
+    jump town_map
