@@ -188,6 +188,8 @@ label beach:
     jump town_map
 
 label sand_trap:
+    if tod == "Evening" and not evening_intro_seen and "Boat With No Name" in completed_quests:
+        jump sand_trap_evening
     "The Sand Trap: cold beer, questionable karaoke, and several people who owe Dale money."
     if quest_boat and not battery_acquired:
         d "Peanut says there's a spare marine battery behind the shed."
@@ -220,4 +222,62 @@ label finish_boat:
     "Wayne earned $150."
     $ tod = "Evening"
     "Monday evening is now open."
+    jump town_map
+
+
+default kelsey_relationship = 0
+default dale_relationship = 0
+default cooler_found = False
+default evening_intro_seen = False
+
+label sand_trap_evening:
+    $ evening_intro_seen = True
+    "Neon buzzes over the Sand Trap's front door."
+    "Inside, Dale is arguing with a dartboard like it owes him money."
+    d "There he is. The only man I know who can turn twenty-three dollars into an airboat."
+    $ dale_relationship += 1
+    "Wayne's phone buzzes."
+    k "You have until tomorrow to bring my cooler back."
+    menu:
+        "Tell Kelsey you'll find it.":
+            $ kelsey_relationship += 1
+            w "I'll find it."
+        "Ask what's so important about the cooler.":
+            $ street_smarts += 1
+            k "What's inside it is none of your business."
+            w "Well now it's definitely my business."
+        "Ignore the message.":
+            $ grit += 1
+    if "The Cooler Incident" not in active_quests:
+        $ active_quests.append("The Cooler Incident")
+    "NEW QUEST: The Cooler Incident"
+    jump town_map
+
+label cooler_search:
+    "Behind Wayne's house sits a pile of things that were going to be dealt with tomorrow."
+    if not cooler_found:
+        $ cooler_found = True
+        $ inventory.append("Kelsey's Cooler")
+        "Under a beach chair and one traffic cone: Kelsey's cooler."
+        w "That was easier than expected."
+        "The cooler is locked."
+    jump town_map
+
+label return_cooler:
+    "Kelsey meets Wayne outside Gator Mart."
+    k "Please tell me you didn't open it."
+    menu:
+        "Of course not.":
+            $ charm += 1
+            $ kelsey_relationship += 2
+        "It was locked.":
+            $ street_smarts += 1
+            $ kelsey_relationship += 1
+        "I considered power tools.":
+            $ dumb_luck += 1
+            k "That's exactly why it was locked."
+    $ inventory.remove("Kelsey's Cooler")
+    $ active_quests.remove("The Cooler Incident")
+    $ completed_quests.append("The Cooler Incident")
+    "QUEST COMPLETE: The Cooler Incident"
     jump town_map
