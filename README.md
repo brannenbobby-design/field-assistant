@@ -2,7 +2,7 @@
 
 Original Ren'Py adventure game set on Florida's Gulf Coast.
 
-## v0.3 Android test scope
+## v0.3.1 Android test scope
 
 ### Monday
 1. Opening choices and phone messages
@@ -36,12 +36,13 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 - Touch-friendly HUD and map
 - Ren'Py save/load support
 
-## v0.3 fixes
+## v0.3/v0.3.1 fixes
 - Prevented **Boat With No Name** from being completed repeatedly for duplicate $150 rewards.
 - Made both Tuesday quests reachable from normal gameplay.
 - Added guarded quest/inventory updates to prevent duplicate entries and unsafe removals.
 - Made the Florida header reflect the actual current day/time instead of staying stuck on Monday morning.
-- Updated Android/build version metadata to 0.3.0.
+- Updated Android/build version metadata to 0.3.1.
+- Fixed the Android startup overlay bug: the teal fill is now a true scene background instead of a persistent full-screen screen layer that could cover dialogue and choices.
 
 ## Running
 Open this folder as a Ren'Py project using Ren'Py 8.5.3 or install the Android artifact produced by GitHub Actions.
