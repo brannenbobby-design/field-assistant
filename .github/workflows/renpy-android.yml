@@ -31,8 +31,8 @@ jobs:
       - name: Lint
         run: renpy-cli "$GITHUB_WORKSPACE" lint --error-code
 
-      - name: Build Android APK
-        run: |
+      - name: Create test signing key
+        run: keytool -genkeypair -keystore android.keystore -storepass android -alias android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Test Build, O=Florida Man Unsupervised, C=US"\n\n      - name: Build Android APK\n        run: |
           mkdir -p "$GITHUB_WORKSPACE/dist"
           renpy-launcher android_build "$GITHUB_WORKSPACE" --destination "$GITHUB_WORKSPACE/dist"
 
