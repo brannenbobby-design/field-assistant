@@ -3,7 +3,8 @@ name: Build RenPy Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
       - "game/**"
       - "android.json"
@@ -32,9 +33,29 @@ jobs:
         run: renpy-cli "$GITHUB_WORKSPACE" lint --error-code
 
       - name: Create test signing key
-        run: keytool -genkeypair -keystore android.keystore -storepass android -alias android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Test Build, O=Florida Man Unsupervised, C=US"\n\n      - name: Build Android APK\n        run: |
+        shell: bash
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore "$GITHUB_WORKSPACE/android.keystore" \
+            -storepass android \
+            -alias android \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Test Build, O=Florida Man Unsupervised, C=US"
+
+      - name: Build Android APK
+        shell: bash
+        run: |
           mkdir -p "$GITHUB_WORKSPACE/dist"
           renpy-launcher android_build "$GITHUB_WORKSPACE" --destination "$GITHUB_WORKSPACE/dist"
+
+      - name: Show APK output
+        if: always()
+        shell: bash
+        run: |
+          find "$GITHUB_WORKSPACE" -maxdepth 4 -type f -name "*.apk" -print || true
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
