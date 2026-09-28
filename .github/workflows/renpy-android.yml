@@ -9,6 +9,13 @@ on:
       - "game/**"
       - "android.json"
       - ".github/workflows/renpy-android.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "game/**"
+      - "android.json"
+      - ".github/workflows/renpy-android.yml"
 
 jobs:
   android:
