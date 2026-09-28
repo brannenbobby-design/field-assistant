@@ -1,0 +1,37 @@
+name: Build RenPy Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "game/**"
+      - ".github/workflows/renpy-android.yml"
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout game
+        uses: actions/checkout@v4
+
+      - name: Set up RenPy with Android support
+        uses: remarkablegames/setup-renpy@v2
+        with:
+          cli-version: 8.5.3
+          rapt: true
+
+      - name: Lint
+        run: renpy-cli "$GITHUB_WORKSPACE" lint --error-code
+
+      - name: Build Android APK
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          renpy-launcher android_build "$GITHUB_WORKSPACE" --destination "$GITHUB_WORKSPACE/dist"
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FloridaManUnsupervised-v0.1-Android
+          path: dist/*.apk
+          if-no-files-found: error
