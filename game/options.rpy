@@ -1,4 +1,4 @@
-define config.name = _("Florida Man: Unsupervised")
+# Android CI: Ren'Py lint and APK build run on pushes and pull requests.\ndefine config.name = _("Florida Man: Unsupervised")
 define config.version = "0.3.0"
 define build.name = "FloridaManUnsupervised"
 define build.version = "0.3.0"
