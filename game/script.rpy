@@ -2,6 +2,8 @@ define w = Character("Wayne")
 define d = Character("Dale")
 define k = Character("Kelsey")
 
+image bg florida = Solid("#17343b")
+
 default money = 23.17
 default gas = 25
 default day = "Monday"
@@ -44,7 +46,6 @@ init python:
             tod = periods[i + 1]
 
 screen florida_backdrop():
-    add Solid("#17343b")
     frame:
         background Solid("#0c171bbb")
         xfill True
@@ -148,7 +149,7 @@ screen town_map_screen():
                 text "The Sand Trap — too early for respectable bad decisions."
 
 label start:
-    scene black
+    scene bg florida
     show screen florida_backdrop
     centered "6:47 AM — MONDAY"
     "A phone alarm screams for the third time."
@@ -635,5 +636,5 @@ label wednesday_teaser:
 
     w "Absolutely not."
 
-    centered "END OF v0.3 TEST BUILD"
+    centered "END OF v0.3.1 TEST BUILD"
     return
