@@ -1,0 +1,19 @@
+{
+  "name": "Florida Man: Unsupervised",
+  "icon_name": "Florida Man",
+  "package": "com.brannenservices.floridamanunsupervised",
+  "version": "0.1.0",
+  "numeric_version": 1,
+  "orientation": "sensorLandscape",
+  "permissions": [],
+  "store": "none",
+  "include_pil": false,
+  "include_sqlite": false,
+  "source": false,
+  "expansion": false,
+  "update_always": true,
+  "update_icons": true,
+  "update_keystores": true,
+  "google_play_key": null,
+  "google_play_salt": null
+}
