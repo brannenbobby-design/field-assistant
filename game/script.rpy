@@ -281,3 +281,87 @@ label return_cooler:
     $ completed_quests.append("The Cooler Incident")
     "QUEST COMPLETE: The Cooler Incident"
     jump town_map
+
+
+default reputation = 0
+default day_number = 1
+default rent_due = 475
+default landlord_warning = 0
+default tuesday_started = False
+
+label tuesday_morning:
+    $ day = "Tuesday"
+    $ day_number = 2
+    $ tod = "Morning"
+    $ tuesday_started = True
+    centered "7:12 AM — TUESDAY"
+    "Wayne's phone vibrates across the floor."
+    "LANDLORD: Morning. Rent. Today."
+    $ landlord_warning += 1
+    if "The Cooler Incident" in active_quests:
+        "KELSEY: Cooler. Today. Seriously."
+    "DALE: Boat buyer has another job. Might pay better."
+    menu:
+        "Deal with the landlord first.":
+            $ street_smarts += 1
+            jump landlord_scene
+        "Ask Dale about the new job.":
+            $ dumb_luck += 1
+            jump dale_tuesday
+        "Pretend the phone is dead.":
+            $ grit += 1
+            "It continues vibrating. Technology has betrayed you."
+            jump town_map
+
+label landlord_scene:
+    "Frank the landlord arrives on a golf cart with a clipboard."
+    "FRANK: You owe four seventy-five."
+    menu:
+        "Pay $100 toward rent":
+            if money >= 100:
+                $ money -= 100
+                $ rent_due -= 100
+                $ reputation += 1
+                "FRANK: It's a start. Friday."
+            else:
+                "Wayne checks his wallet. Ambitious."
+        "Ask for until Friday":
+            $ charm += 1
+            "FRANK: Friday. Then we have a different conversation."
+        "Offer to work some of it off":
+            $ grit += 1
+            "FRANK: Laundry room door won't close. Fix it and I'll knock a hundred off."
+            if "Laundry Room Rescue" not in active_quests:
+                $ active_quests.append("Laundry Room Rescue")
+    jump town_map
+
+label dale_tuesday:
+    "Dale is already outside Gator Mart."
+    d "Remember the guy who bought the airboat?"
+    w "Unfortunately."
+    d "His brother needs something moved."
+    w "What?"
+    d "He was real specific about not telling me over the phone."
+    if "A Simple Delivery" not in active_quests:
+        $ active_quests.append("A Simple Delivery")
+    "NEW QUEST: A Simple Delivery"
+    jump town_map
+
+label laundry_room_rescue:
+    "The laundry room door is swollen from humidity and scraping the frame."
+    menu:
+        "Adjust it carefully":
+            $ street_smarts += 1
+            $ rent_due -= 100
+            $ active_quests.remove("Laundry Room Rescue")
+            $ completed_quests.append("Laundry Room Rescue")
+            "FRANK: Good enough. Hundred bucks off."
+        "Hit it until it closes":
+            $ grit += 1
+            $ dumb_luck += 1
+            $ rent_due -= 50
+            $ active_quests.remove("Laundry Room Rescue")
+            $ completed_quests.append("Laundry Room Rescue")
+            "It closes. It may never open again."
+            "FRANK: Fifty bucks off. Don't touch anything else."
+    jump town_map
