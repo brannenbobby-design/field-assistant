@@ -67,6 +67,6 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: FloridaManUnsupervised-v0.3.0-Android
+          name: FloridaManUnsupervised-v0.3.1-Android
           path: dist/*.apk
           if-no-files-found: error
