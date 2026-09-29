@@ -85,28 +85,28 @@ screen merge_game():
             ysize 1030
             background Solid("#08242dcf")
             padding (12, 12)
-            draggroup:
-                for i in range(20):
-                    drag:
-                        drag_name "[i]"
-                        draggable board[i] is not None
-                        droppable True
-                        dragged fm_drag_drop
-                        xpos (30 + (i % 5) * 203)
-                        ypos (554 + (i // 5) * 251)
-                        xysize (195, 243)
-                        child Frame(
-                            Text((FM_META[board[i]][0] + "\n" + FM_META[board[i]][1]) if board[i] else "+",
-                                size=34 if board[i] else 48,
-                                color="#203a40" if board[i] else "#8faeb0",
-                                bold=board[i] is not None,
-                                text_align=0.5,
-                                xmaximum=175,
-                                xalign=0.5,
-                                yalign=0.5),
-                            background=Solid("#ffe79eee" if i == selected_tile else "#f4e6c9ee" if board[i] else "#173e48cc"),
-                            padding=(8, 10),
-                            xysize=(195, 243))
+        draggroup:
+            for i in range(20):
+                drag:
+                    drag_name "[i]"
+                    draggable board[i] is not None
+                    droppable True
+                    dragged fm_drag_drop
+                    xpos (30 + (i % 5) * 203)
+                    ypos (554 + (i // 5) * 251)
+                    xysize (195, 243)
+                    child Frame(
+                        Text((FM_META[board[i]][0] + "\n" + FM_META[board[i]][1]) if board[i] else "+",
+                            size=34 if board[i] else 48,
+                            color="#203a40" if board[i] else "#8faeb0",
+                            bold=board[i] is not None,
+                            text_align=0.5,
+                            xmaximum=175,
+                            xalign=0.5,
+                            yalign=0.5),
+                        background=Solid("#ffe79eee" if i == selected_tile else "#f4e6c9ee" if board[i] else "#173e48cc"),
+                        padding=(8, 10),
+                        xysize=(195, 243))
 
         frame:
             xpos 24
