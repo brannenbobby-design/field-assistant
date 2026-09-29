@@ -2,7 +2,7 @@
 
 Original Ren'Py adventure game set on Florida's Gulf Coast.
 
-## v0.3.1 Android test scope
+## v0.3.2 Android test scope
 
 ### Monday
 1. Opening choices and phone messages
@@ -19,10 +19,20 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 
 ### Tuesday
 1. Deal with Frank the landlord or follow Dale's new lead
-2. **Laundry Room Rescue** is now a real reachable map job
-3. **A Simple Delivery** now has a complete Storage Lot → Sand Trap quest line
+2. **Laundry Room Rescue**
+3. **A Simple Delivery** through Storage Unit 14 and the Sand Trap
 4. Choices affect stats, relationships, reputation, rent balance, and payout
 5. End Tuesday at Wayne's House to reach the Wednesday teaser
+
+## v0.3.2 presentation upgrade
+- Eight illustrated Gulf Coast location backgrounds
+- Wayne, Dale, and corrected Kelsey character sprites
+- Dedicated bottom dialogue box so narration no longer collides with HUD text
+- Large touch-friendly choice buttons
+- HUD/status information restricted to the free-roam map
+- Scrollable phone screen with messages, quests, inventory, and stats
+- Scene-specific character placement instead of characters floating over every screen
+- Stable development signing key for repeatable Android test updates
 
 ## Core systems
 - Money and rent balance
@@ -33,18 +43,18 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 - Dale/Kelsey relationship values
 - Reputation
 - Dynamic phone messages
-- Touch-friendly HUD and map
 - Ren'Py save/load support
 
-## v0.3/v0.3.1 fixes
+## Previous fixes retained
 - Prevented **Boat With No Name** from being completed repeatedly for duplicate $150 rewards.
 - Made both Tuesday quests reachable from normal gameplay.
-- Added guarded quest/inventory updates to prevent duplicate entries and unsafe removals.
-- Made the Florida header reflect the actual current day/time instead of staying stuck on Monday morning.
-- Updated Android/build version metadata to 0.3.1.
-- Fixed the Android startup overlay bug: the teal fill is now a true scene background instead of a persistent full-screen screen layer that could cover dialogue and choices.
+- Added guarded quest/inventory updates.
+- Fixed the Android startup overlay bug.
+
+## Android signing
+The checked-in keystore is intentionally a **development/test key only** so successive test APKs can update each other. It must never be reused as a production Google Play signing key.
 
 ## Running
 Open this folder as a Ren'Py project using Ren'Py 8.5.3 or install the Android artifact produced by GitHub Actions.
 
-Current milestone: validate the full Monday → Tuesday → Wednesday-teaser path on Android before expanding Wednesday.
+Current milestone: validate the illustrated Monday → Tuesday → Wednesday-teaser path on Android, then expand Wednesday and add additional character poses/expressions.
