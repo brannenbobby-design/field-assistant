@@ -55,14 +55,20 @@ jobs:
           for asset in required_assets:
               assert asset.exists() and asset.stat().st_size > 10000, f"Missing or empty asset: {asset}"
 
+          # Peanut v0.3.8 redesign guard: exact approved production sprite.
+          import hashlib
+          peanut = Path("game/images/peanut.webp")
+          assert peanut.stat().st_size > 250000, "Peanut redesign asset was replaced by the old small sprite"
+          assert hashlib.sha256(peanut.read_bytes()).hexdigest() == "8654612b0d7448fa85ffef4251889a404317956493a128b85c9ffd3703f9b2f9", "Unexpected Peanut sprite"
+
           options = Path("game/options.rpy").read_text(encoding="utf-8")
           script = Path("game/script.rpy").read_text(encoding="utf-8")
           art = Path("game/art.rpy").read_text(encoding="utf-8")
           android = json.loads(Path("android.json").read_text(encoding="utf-8"))
 
-          assert 'define config.version = "0.3.7"' in options
-          assert 'define build.version = "0.3.7"' in options
-          assert android["version"] == "0.3.7" and android["numeric_version"] == 10
+          assert 'define config.version = "0.3.8"' in options
+          assert 'define build.version = "0.3.8"' in options
+          assert android["version"] == "0.3.8" and android["numeric_version"] == 11
 
           for token in [
               'define f = Character("Frank"',
@@ -158,6 +164,6 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: FloridaManUnsupervised-v0.3.7-Android
+          name: FloridaManUnsupervised-v0.3.8-Android
           path: dist/*.apk
           if-no-files-found: error
