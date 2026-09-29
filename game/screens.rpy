@@ -101,28 +101,45 @@ transform fm_choice_pop:
     easeout 0.16 alpha 1.0 yoffset 0
 
 screen say(who, what):
+    zorder 50
+
     window:
         id "window"
-        style "fm_dialogue_window"
+        xpos 40
+        ypos 790
+        xsize 1840
+        ysize 250
+        background Solid("#071116f4")
+        padding (58, 28)
 
-        if who:
-            text who:
-                id "who"
-                style "fm_dialogue_name"
-                xpos 0
-                ypos 0
+        fixed:
+            xfill True
+            yfill True
 
-            text what:
-                id "what"
-                style "fm_dialogue_text"
-                xpos 0
-                ypos 58
-        else:
-            text what:
-                id "what"
-                style "fm_dialogue_text"
-                xpos 0
-                ypos 26
+            if who:
+                text who:
+                    id "who"
+                    style "fm_dialogue_name"
+                    xpos 0
+                    ypos 0
+
+                text what:
+                    id "what"
+                    style "fm_dialogue_text"
+                    xpos 0
+                    ypos 58
+            else:
+                text what:
+                    id "what"
+                    style "fm_dialogue_text"
+                    xpos 0
+                    ypos 24
+
+            text "TAP TO CONTINUE":
+                size 17
+                color "#80949e"
+                xalign 0.99
+                yalign 0.94
 
 screen choice(items):
     modal True
