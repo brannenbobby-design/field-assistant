@@ -972,5 +972,5 @@ label wednesday_wrap:
         d "Phase two tomorrow."
         w "There better not be a phase two."
 
-    centered "END OF v0.3.7 TEST BUILD"
+    centered "END OF v0.3.8 TEST BUILD"
     return
