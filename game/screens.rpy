@@ -87,28 +87,24 @@ screen merge_game():
             padding (12, 12)
             draggroup:
                 for i in range(20):
-                    $ item = board[i]
-                    $ tile = FM_META.get(item) if item else None
                     drag:
                         drag_name "[i]"
-                        draggable item is not None
+                        draggable board[i] is not None
                         droppable True
                         dragged fm_drag_drop
                         xpos (30 + (i % 5) * 203)
                         ypos (554 + (i // 5) * 251)
                         xysize (195, 243)
-                        $ tile_text = tile[0] + "\n" + tile[1] if tile else "+"
-                        $ tile_color = "#ffe79eee" if i == selected_tile else "#f4e6c9ee" if item else "#173e48cc"
                         child Frame(
-                            Text(tile_text,
-                                size=34 if tile else 48,
-                                color="#203a40" if tile else "#8faeb0",
-                                bold=bool(tile),
+                            Text((FM_META[board[i]][0] + "\n" + FM_META[board[i]][1]) if board[i] else "+",
+                                size=34 if board[i] else 48,
+                                color="#203a40" if board[i] else "#8faeb0",
+                                bold=board[i] is not None,
                                 text_align=0.5,
                                 xmaximum=175,
                                 xalign=0.5,
                                 yalign=0.5),
-                            background=Solid(tile_color),
+                            background=Solid("#ffe79eee" if i == selected_tile else "#f4e6c9ee" if board[i] else "#173e48cc"),
                             padding=(8, 10),
                             xysize=(195, 243))
 
