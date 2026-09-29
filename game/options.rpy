@@ -1,9 +1,9 @@
 # Android CI: Ren'Py lint and APK build run on pushes and pull requests.
 define config.name = _("Florida Man: Unsupervised")
-define config.version = "0.3.7"
+define config.version = "0.3.8"
 define build.name = "FloridaManUnsupervised"
-define build.version = "0.3.7"
-define build.directory_name = "FloridaManUnsupervised-0.3.7"
+define build.version = "0.3.8"
+define build.directory_name = "FloridaManUnsupervised-0.3.8"
 define build.executable_name = "FloridaManUnsupervised"
 define config.check_conflicting_properties = True
 define config.default_fullscreen = True
