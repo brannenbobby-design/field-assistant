@@ -1,6 +1,8 @@
-define w = Character("Wayne")
-define d = Character("Dale")
-define k = Character("Kelsey")
+define w = Character("Wayne", color="#72d4ff")
+define d = Character("Dale", color="#f2b15f")
+define k = Character("Kelsey", color="#ff9fc8")
+define f = Character("Frank", color="#b9d4c5")
+define p = Character("Peanut", color="#e1a467")
 
 default money = 23.17
 default gas = 25
@@ -227,6 +229,8 @@ label town_map:
     hide wayne
     hide dale
     hide kelsey
+    hide frank
+    hide peanut
     call screen town_map_screen
     jump town_map
 
@@ -389,8 +393,10 @@ label sand_trap:
     "The Sand Trap: cold beer, questionable karaoke, and several people who owe Dale money."
 
     if quest_boat and "Boat With No Name" in active_quests and not battery_acquired:
-        show dale at fm_right
+        show dale at fm_center with dissolve
+        show peanut at fm_right with dissolve
         d "Peanut says there's a spare marine battery behind the shed."
+        p "Was spare. Now it's ten bucks."
 
         menu:
             "Buy a used battery from Peanut — $10":
@@ -401,9 +407,9 @@ label sand_trap:
                     if "Marine Battery" not in inventory:
                         $ inventory.append("Marine Battery")
 
-                    "Peanut accepts ten dollars and absolutely no questions."
+                    p "Pleasure doing questionable business."
                 else:
-                    "Peanut looks at your wallet and laughs."
+                    p "Come back when your wallet quits rattling like a loose fan blade."
 
             "Offer to do Peanut a favor instead":
                 $ grit += 1
@@ -412,7 +418,7 @@ label sand_trap:
                 if "Marine Battery" not in inventory:
                     $ inventory.append("Marine Battery")
 
-                "PEANUT: Fine. But now you owe me."
+                p "Fine. But now you owe me."
 
             "Walk away":
                 pass
@@ -568,9 +574,10 @@ label tuesday_morning:
 label landlord_scene:
     scene bg wayne_house
     show wayne at fm_left
+    show frank at fm_right with dissolve
 
     "Frank the landlord arrives on a golf cart with a clipboard."
-    "FRANK: You owe [rent_due]."
+    f "You owe [rent_due]."
 
     menu:
         "Pay $100 toward rent":
@@ -578,17 +585,17 @@ label landlord_scene:
                 $ money -= 100
                 $ rent_due = max(0, rent_due - 100)
                 $ reputation += 1
-                "FRANK: It's a start. Friday."
+                f "It's a start. Friday."
             else:
                 "Wayne checks his wallet. Ambitious."
 
         "Ask for until Friday":
             $ charm += 1
-            "FRANK: Friday. Then we have a different conversation."
+            f "Friday. Then we have a different conversation."
 
         "Offer to work some of it off":
             $ grit += 1
-            "FRANK: Laundry room door won't close. Fix it and I'll knock a hundred off."
+            f "Laundry room door won't close. Fix it and I'll knock a hundred off."
 
             if "Laundry Room Rescue" not in active_quests and "Laundry Room Rescue" not in completed_quests:
                 $ active_quests.append("Laundry Room Rescue")
@@ -637,6 +644,7 @@ label dale_tuesday:
 label laundry_room_rescue:
     scene bg laundry
     show wayne at fm_left
+    show frank at fm_right with dissolve
 
     "The apartment laundry room smells like dryer sheets, humidity, and somebody else's bad decisions."
     "The exterior door is swollen and scraping the frame."
@@ -647,7 +655,7 @@ label laundry_room_rescue:
             $ reputation += 1
             $ rent_due = max(0, rent_due - 100)
             "Wayne resets the hinges, adjusts the latch, and gets an even reveal."
-            "FRANK: Good. Hundred bucks off."
+            f "Good. Hundred bucks off."
 
         "Plane the sticking edge and seal the exposed wood":
             $ grit += 1
@@ -655,7 +663,7 @@ label laundry_room_rescue:
             $ reputation += 1
             $ rent_due = max(0, rent_due - 100)
             "The door swings clean and the exposed edge gets sealed."
-            "FRANK: That's better than it was before. Hundred off."
+            f "That's better than it was before. Hundred off."
 
         "Hit it until it closes":
             $ grit += 1
@@ -663,7 +671,7 @@ label laundry_room_rescue:
             $ reputation -= 1
             $ rent_due = max(0, rent_due - 50)
             "It closes. It may never open again."
-            "FRANK: Fifty bucks off. Don't touch anything else."
+            f "Fifty bucks off. Don't touch anything else."
 
     if "Laundry Room Rescue" in active_quests:
         $ active_quests.remove("Laundry Room Rescue")
@@ -715,10 +723,11 @@ label storage_lot:
 label delivery_dropoff:
     scene bg sand_trap
     show wayne at fm_left
-    show dale at fm_right
+    show dale at fm_center
+    show peanut at fm_right with dissolve
 
     "Peanut is standing behind the Sand Trap when Wayne and Dale arrive."
-    "PEANUT: Put it over the outdoor bar."
+    p "Put it over the outdoor bar."
     w "Of course that's where it goes."
 
     if not delivery_strapped:
@@ -748,11 +757,11 @@ label delivery_dropoff:
 
     if delivery_damage:
         $ money += 100
-        "PEANUT: Hundred. I'm keeping twenty-five for the paint."
+        p "Hundred. I'm keeping twenty-five for the paint."
         "Wayne earned $100."
     else:
         $ money += 125
-        "PEANUT: Hundred twenty-five. Pleasure doing questionable business."
+        p "Hundred twenty-five. Pleasure doing questionable business."
         "Wayne earned $125."
 
     if "Fiberglass Swordfish" in inventory:
@@ -788,5 +797,5 @@ label wednesday_teaser:
 
     w "Absolutely not."
 
-    centered "END OF v0.3.2 TEST BUILD"
+    centered "END OF v0.3.3 TEST BUILD"
     return

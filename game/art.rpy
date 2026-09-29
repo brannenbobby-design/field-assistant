@@ -33,6 +33,8 @@ image bg wednesday:
 image wayne = "images/wayne.webp"
 image dale = "images/dale.webp"
 image kelsey = "images/kelsey.webp"
+image frank = "images/frank.webp"
+image peanut = "images/peanut.webp"
 
 transform fm_left:
     xalign 0.17
