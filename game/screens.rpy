@@ -97,19 +97,20 @@ screen merge_game():
                         xpos (30 + (i % 5) * 203)
                         ypos (554 + (i // 5) * 251)
                         xysize (195, 243)
-                        child Frame:
-                            xysize (195, 243)
-                            background Solid("#ffe79eee" if i == selected_tile else "#f4e6c9ee" if item else "#173e48cc")
-                            padding (8, 10)
-                            vbox:
-                                xalign 0.5
-                                yalign 0.5
-                                spacing 9
-                                if tile:
-                                    text tile[0] size 62 xalign 0.5 color "#17313b"
-                                    text tile[1] size 22 bold True color "#203a40" xalign 0.5 text_align 0.5 xmaximum 175
-                                else:
-                                    text "+" size 45 color "#8faeb0" xalign 0.5 yalign 0.5
+                        $ tile_text = tile[0] + "\n" + tile[1] if tile else "+"
+                        $ tile_color = "#ffe79eee" if i == selected_tile else "#f4e6c9ee" if item else "#173e48cc"
+                        child Frame(
+                            Text(tile_text,
+                                size=34 if tile else 48,
+                                color="#203a40" if tile else "#8faeb0",
+                                bold=bool(tile),
+                                text_align=0.5,
+                                xmaximum=175,
+                                xalign=0.5,
+                                yalign=0.5),
+                            background=Solid(tile_color),
+                            padding=(8, 10),
+                            xysize=(195, 243))
 
         frame:
             xpos 24
