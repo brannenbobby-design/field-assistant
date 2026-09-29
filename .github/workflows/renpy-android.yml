@@ -60,9 +60,9 @@ jobs:
           art = Path("game/art.rpy").read_text(encoding="utf-8")
           android = json.loads(Path("android.json").read_text(encoding="utf-8"))
 
-          assert 'define config.version = "0.3.3"' in options
-          assert 'define build.version = "0.3.3"' in options
-          assert android["version"] == "0.3.3" and android["numeric_version"] == 6
+          assert 'define config.version = "0.3.4"' in options
+          assert 'define build.version = "0.3.4"' in options
+          assert android["version"] == "0.3.4" and android["numeric_version"] == 7
 
           for token in [
               'define f = Character("Frank"',
@@ -74,6 +74,22 @@ jobs:
 
           for token in ['image frank = "images/frank.webp"', 'image peanut = "images/peanut.webp"']:
               assert token in art, f"Art definition missing: {token}"
+
+          presentation = Path("game/screens.rpy").read_text(encoding="utf-8")
+          for token in [
+              "screen main_menu():",
+              "screen pause_menu():",
+              "screen save():",
+              "screen load():",
+              "screen preferences():",
+              'textbutton "NEW GAME"',
+              'textbutton "SAVE GAME"',
+          ]:
+              assert token in presentation, f"Presentation screen missing: {token}"
+
+          assert "define fm_scene = Dissolve(0.25)" in art
+          assert "with fm_scene" in script
+          assert 'action ShowMenu("pause_menu")' in script
 
           assert '"FRANK:' not in script, "Frank still has raw text-speaker dialogue"
           assert '"PEANUT:' not in script, "Peanut still has raw text-speaker dialogue"
@@ -100,6 +116,6 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: FloridaManUnsupervised-v0.3.3-Android
+          name: FloridaManUnsupervised-v0.3.4-Android
           path: dist/*.apk
           if-no-files-found: error
