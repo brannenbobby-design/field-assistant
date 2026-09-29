@@ -147,11 +147,19 @@ screen town_map_screen():
                 if day_number >= 2:
                     text "RENT DUE $[rent_due]" size 25 color "#f6c67b"
 
-            textbutton "PHONE":
-                action Show("phone_screen")
+            hbox:
                 xalign 1.0
-                xsize 260
-                yminimum 64
+                spacing 14
+
+                textbutton "PHONE":
+                    action Show("phone_screen")
+                    xsize 220
+                    yminimum 64
+
+                textbutton "MENU":
+                    action ShowMenu("pause_menu")
+                    xsize 220
+                    yminimum 64
 
     frame:
         style "fm_panel"
@@ -186,10 +194,11 @@ screen town_map_screen():
     text "Tap a destination. Story scenes keep the HUD out of the way." size 22 color "#d7ddd9" xalign 0.97 yalign 0.96
 
 label start:
-    scene bg wayne_house
+    scene bg wayne_house with fm_scene
     show wayne at fm_center
 
     centered "6:47 AM — MONDAY"
+    pause 0.2
     "A phone alarm screams for the third time."
     w "Why am I on the couch?"
 
@@ -235,7 +244,7 @@ label town_map:
     jump town_map
 
 label wayne_house:
-    scene bg wayne_house
+    scene bg wayne_house with fm_scene
     show wayne at fm_left
 
     "Home. The AC is trying its best, which is more than can be said for Wayne."
@@ -263,7 +272,7 @@ label wayne_house:
     jump town_map
 
 label dale_house:
-    scene bg dale_house
+    scene bg dale_house with fm_scene
     show wayne at fm_left
     show dale at fm_right
 
@@ -321,7 +330,7 @@ label dale_house:
     jump town_map
 
 label gator_mart:
-    scene bg gator_mart
+    scene bg gator_mart with fm_scene
     show wayne at fm_left
 
     "The Gator Mart smells like coffee, bait, and an electrical fire nobody has investigated."
@@ -357,7 +366,7 @@ label gator_mart:
     jump town_map
 
 label beach:
-    scene bg beach
+    scene bg beach with fm_scene
     show wayne at fm_left
 
     "White sand, Gulf water, and at least one person who brought a Bluetooth speaker nobody asked for."
@@ -381,7 +390,7 @@ label beach:
     jump town_map
 
 label sand_trap:
-    scene bg sand_trap
+    scene bg sand_trap with fm_scene
     show wayne at fm_left
 
     if "A Simple Delivery" in active_quests and delivery_stage == 2:
@@ -426,7 +435,7 @@ label sand_trap:
     jump town_map
 
 label finish_boat:
-    scene bg dale_house
+    scene bg dale_house with fm_scene
     show wayne at fm_left
     show dale at fm_right
 
@@ -452,7 +461,7 @@ label finish_boat:
     jump town_map
 
 label sand_trap_evening:
-    scene bg sand_trap
+    scene bg sand_trap with fm_scene
     show wayne at fm_left
     show dale at fm_right
 
@@ -488,7 +497,7 @@ label sand_trap_evening:
     jump town_map
 
 label cooler_search:
-    scene bg wayne_house
+    scene bg wayne_house with fm_scene
     show wayne at fm_left
 
     "Behind Wayne's house sits a pile of things that were going to be dealt with tomorrow."
@@ -506,7 +515,7 @@ label cooler_search:
     jump town_map
 
 label return_cooler:
-    scene bg gator_mart
+    scene bg gator_mart with fm_scene
     show wayne at fm_left
     show kelsey at fm_right
 
@@ -539,7 +548,7 @@ label return_cooler:
     jump town_map
 
 label tuesday_morning:
-    scene bg wayne_house
+    scene bg wayne_house with fm_scene
     show wayne at fm_center
 
     $ day = "Tuesday"
@@ -572,7 +581,7 @@ label tuesday_morning:
             jump town_map
 
 label landlord_scene:
-    scene bg wayne_house
+    scene bg wayne_house with fm_scene
     show wayne at fm_left
     show frank at fm_right with dissolve
 
@@ -605,7 +614,7 @@ label landlord_scene:
     jump town_map
 
 label dale_tuesday:
-    scene bg gator_mart
+    scene bg gator_mart with fm_scene
     show wayne at fm_left
     show dale at fm_right
 
@@ -642,7 +651,7 @@ label dale_tuesday:
     jump town_map
 
 label laundry_room_rescue:
-    scene bg laundry
+    scene bg laundry with fm_scene
     show wayne at fm_left
     show frank at fm_right with dissolve
 
@@ -684,7 +693,7 @@ label laundry_room_rescue:
     jump town_map
 
 label storage_lot:
-    scene bg storage_lot
+    scene bg storage_lot with fm_scene
     show wayne at fm_left
     show dale at fm_right
 
@@ -721,7 +730,7 @@ label storage_lot:
     jump town_map
 
 label delivery_dropoff:
-    scene bg sand_trap
+    scene bg sand_trap with fm_scene
     show wayne at fm_left
     show dale at fm_center
     show peanut at fm_right with dissolve
@@ -782,7 +791,7 @@ label delivery_dropoff:
     jump town_map
 
 label wednesday_teaser:
-    scene bg wednesday
+    scene bg wednesday with fm_scene
     show wayne at fm_left
 
     $ day = "Wednesday"
@@ -797,5 +806,5 @@ label wednesday_teaser:
 
     w "Absolutely not."
 
-    centered "END OF v0.3.3 TEST BUILD"
+    centered "END OF v0.3.4 TEST BUILD"
     return
