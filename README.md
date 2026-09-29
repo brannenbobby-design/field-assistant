@@ -2,7 +2,7 @@
 
 Original Ren'Py adventure game set on Florida's Gulf Coast.
 
-## v0.3.6 Android test scope
+## v0.3.7 Android test scope
 
 ### Monday
 1. Opening choices and phone messages
@@ -32,7 +32,7 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 5. Each route changes money, rent, reputation, inventory, and relationships
 6. Finish Wednesday with a route-specific ending
 
-## v0.3.6 presentation upgrade
+## v0.3.7 presentation upgrade
 - Eight illustrated Gulf Coast location backgrounds
 - Wayne, Dale, corrected Kelsey, Frank, and Peanut character sprites
 - Dedicated bottom dialogue box so narration no longer collides with HUD text
@@ -42,6 +42,9 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 - Phone tabs for Messages, Jobs, Inventory, and Stats
 - Fixed the story-phone freeze by returning correctly from a called phone screen while still allowing map-overlay phone use
 - Scene-specific character placement instead of characters floating over every screen
+- Character clarity pass prevents Wayne, Dale, and Peanut from appearing as three near-identical full-body figures at once
+- Sand Trap scenes now use sequential POV-style staging: Dale and Peanut enter one at a time as they become relevant
+- Dialogue window is hard-anchored to the bottom of the Android layout with a visible continuation cue
 - Frank now appears in the rent/laundry scenes; Peanut appears in the battery and swordfish-delivery scenes
 - Named-character dialogue now uses Ren'Py Character speakers with distinct name colors
 - New cinematic title screen built from real in-game art and sprites
@@ -78,4 +81,4 @@ The checked-in keystore is intentionally a **development/test key only** so succ
 ## Running
 Open this folder as a Ren'Py project using Ren'Py 8.5.3 or install the Android artifact produced by GitHub Actions.
 
-Current milestone: validate the repaired smartphone UI and full Monday → Wednesday flow on Android, then add expression/pose variants and a dedicated audio pass.
+Current milestone: validate the v0.3.7 character-staging and dialogue-layout fixes on Android, then add true expression/pose variants and a dedicated audio pass.

@@ -370,9 +370,13 @@ label sand_trap:
     "The Sand Trap: cold beer, questionable karaoke, and several people who owe Dale money."
 
     if quest_boat and "Boat With No Name" in active_quests and not battery_acquired:
-        show dale at fm_center with dissolve
-        show peanut at fm_right with dissolve
+        # Keep visually similar male characters from reading as duplicates.
+        hide wayne with dissolve
+        show dale at fm_left with dissolve
         d "Peanut says there's a spare marine battery behind the shed."
+
+        hide dale with dissolve
+        show peanut at fm_right with dissolve
         p "Was spare. Now it's ten bucks."
 
         menu:
@@ -699,8 +703,9 @@ label storage_lot:
 
 label delivery_dropoff:
     scene bg sand_trap with fm_scene
-    show wayne at fm_left
-    show dale at fm_center
+
+    # POV staging: only the NPC currently driving the interaction is shown.
+    # This prevents Wayne/Dale/Peanut from reading as duplicated copies.
     show peanut at fm_right with dissolve
 
     "Peanut is standing behind the Sand Trap when Wayne and Dale arrive."
@@ -730,7 +735,14 @@ label delivery_dropoff:
         "Tell Dale 'your opportunity, your fish'":
             $ charm += 1
             $ dale_relationship -= 1
+            hide peanut with dissolve
+            show dale at fm_right with dissolve
+            d "Fine. My opportunity. My fish."
             "Dale mutters something unprintable and takes the heavy end."
+
+    hide dale
+    hide peanut
+    show peanut at fm_right with dissolve
 
     if delivery_damage:
         $ money += 100
@@ -960,5 +972,5 @@ label wednesday_wrap:
         d "Phase two tomorrow."
         w "There better not be a phase two."
 
-    centered "END OF v0.3.5 TEST BUILD"
+    centered "END OF v0.3.7 TEST BUILD"
     return
