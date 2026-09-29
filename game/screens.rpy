@@ -267,7 +267,11 @@ screen fm_file_slots(title, mode):
                 for slot in range(1, 7):
                     button:
                         style "fm_save_slot"
-                        action FileSave(slot) if mode == "save" else FileLoad(slot)
+
+                        if mode == "save":
+                            action FileSave(slot)
+                        else:
+                            action FileLoad(slot)
 
                         vbox:
                             spacing 8
