@@ -2,7 +2,7 @@
 
 Original Ren'Py adventure game set on Florida's Gulf Coast.
 
-## v0.3.3 Android test scope
+## v0.3.4 Android test scope
 
 ### Monday
 1. Opening choices and phone messages
@@ -24,7 +24,7 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 4. Choices affect stats, relationships, reputation, rent balance, and payout
 5. End Tuesday at Wayne's House to reach the Wednesday teaser
 
-## v0.3.3 presentation upgrade
+## v0.3.4 presentation upgrade
 - Eight illustrated Gulf Coast location backgrounds
 - Wayne, Dale, corrected Kelsey, Frank, and Peanut character sprites
 - Dedicated bottom dialogue box so narration no longer collides with HUD text
@@ -34,6 +34,12 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 - Scene-specific character placement instead of characters floating over every screen
 - Frank now appears in the rent/laundry scenes; Peanut appears in the battery and swordfish-delivery scenes
 - Named-character dialogue now uses Ren'Py Character speakers with distinct name colors
+- New cinematic title screen built from real in-game art and sprites
+- Dedicated pause menu with save, load, settings, and main-menu navigation
+- Six visible save slots with screenshots and timestamps
+- Text speed, auto-forward, sound, music, and transition settings
+- Animated character entrances and 0.25-second scene dissolves
+- Menu access added directly to the free-roam HUD
 - Stable development signing key for repeatable Android test updates
 
 ## Core systems
@@ -59,4 +65,4 @@ The checked-in keystore is intentionally a **development/test key only** so succ
 ## Running
 Open this folder as a Ren'Py project using Ren'Py 8.5.3 or install the Android artifact produced by GitHub Actions.
 
-Current milestone: validate the fully illustrated Monday → Tuesday → Wednesday-teaser path on Android with the five-character cast, then expand Wednesday and add expression/pose variants.
+Current milestone: validate the v0.3.4 presentation layer on Android, then expand Wednesday and add expression/pose variants plus audio.
