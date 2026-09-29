@@ -1,12 +1,14 @@
-# Android CI: Ren'Py lint and APK build run on pushes and pull requests.
-define config.name = _("Florida Man: Unsupervised")
-define config.version = "0.3.8"
-define build.name = "FloridaManUnsupervised"
-define build.version = "0.3.8"
-define build.directory_name = "FloridaManUnsupervised-0.3.8"
-define build.executable_name = "FloridaManUnsupervised"
-define config.check_conflicting_properties = True
+define config.name = _("Florida Man: Storm Cleanup")
+define config.version = "1.0.0"
+define build.name = "FloridaManStormCleanup"
+define build.version = "1.0.0"
+define build.directory_name = "FloridaManStormCleanup-1.0.0"
+define build.executable_name = "FloridaManStormCleanup"
+define config.screen_width = 1080
+define config.screen_height = 1920
 define config.default_fullscreen = True
+define config.save_directory = "FloridaManStormCleanup-1"
+define config.check_conflicting_properties = True
 
 init python:
     build.classify("**~", None)

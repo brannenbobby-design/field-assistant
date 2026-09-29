@@ -1,32 +1,33 @@
 init python:
-    gui.init(1920, 1080)
+    gui.init(1080, 1920)
 
-define gui.text_size = 38
-define gui.name_text_size = 42
-define gui.interface_text_size = 32
-define gui.button_text_size = 32
-define gui.choice_button_text_size = 34
+define gui.text_size = 32
+define gui.name_text_size = 38
+define gui.interface_text_size = 30
+define gui.button_text_size = 30
+define gui.choice_button_text_size = 30
 
 style default:
-    color "#f2eadb"
-    outlines [(2, "#00000099", 0, 0)]
+    color "#fff6e8"
+    outlines [(1, "#122027aa", 0, 1)]
+    font "DejaVuSans.ttf"
 
 style button:
-    background Solid("#142126e8")
-    hover_background Solid("#31454dee")
-    padding (26, 16)
-    xminimum 340
+    background Solid("#16313bea")
+    hover_background Solid("#2e6267ee")
+    padding (24, 18)
 
 style button_text:
-    color "#f2eadb"
-    hover_color "#ffd166"
+    color "#fff6e8"
+    hover_color "#ffe08a"
     text_align 0.5
 
 style fm_panel is frame:
-    background Solid("#0a1419e8")
-    padding (30, 24)
+    background Solid("#08242de8")
+    padding (24, 22)
 
 style fm_title is text:
-    size 44
-    color "#ffd166"
-    outlines [(3, "#000000cc", 0, 0)]
+    size 68
+    bold True
+    color "#ffb347"
+    outlines [(3, "#14242acc", 0, 3)]

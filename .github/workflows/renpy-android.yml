@@ -1,18 +1,16 @@
-name: Build RenPy Android APK
+name: Build Florida Man Storm Cleanup Android APK
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ main ]
     paths:
       - "game/**"
       - "android.json"
       - ".github/workflows/renpy-android.yml"
       - ".github/keys/**"
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
     paths:
       - "game/**"
       - "android.json"
@@ -41,106 +39,25 @@ jobs:
       - name: Lint
         run: renpy-cli "$GITHUB_WORKSPACE" lint --error-code
 
-      - name: Validate version and character integration
+      - name: Validate first playable configuration
         shell: bash
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-
-          required_assets = [
-              Path("game/images/frank.webp"),
-              Path("game/images/peanut.webp"),
-          ]
-          for asset in required_assets:
-              assert asset.exists() and asset.stat().st_size > 10000, f"Missing or empty asset: {asset}"
-
-          # Peanut v0.3.8 redesign guard: exact approved production sprite.
-          import hashlib
-          peanut = Path("game/images/peanut.webp")
-          assert peanut.stat().st_size > 250000, "Peanut redesign asset was replaced by the old small sprite"
-          assert hashlib.sha256(peanut.read_bytes()).hexdigest() == "8654612b0d7448fa85ffef4251889a404317956493a128b85c9ffd3703f9b2f9", "Unexpected Peanut sprite"
-
-          options = Path("game/options.rpy").read_text(encoding="utf-8")
-          script = Path("game/script.rpy").read_text(encoding="utf-8")
-          art = Path("game/art.rpy").read_text(encoding="utf-8")
-          android = json.loads(Path("android.json").read_text(encoding="utf-8"))
-
-          assert 'define config.version = "0.3.8"' in options
-          assert 'define build.version = "0.3.8"' in options
-          assert android["version"] == "0.3.8" and android["numeric_version"] == 11
-
-          for token in [
-              'define f = Character("Frank"',
-              'define p = Character("Peanut"',
-              'show frank at fm_right',
-              'show peanut at fm_right',
-          ]:
-              assert token in script, f"Character integration missing: {token}"
-
-          for token in ['image frank = "images/frank.webp"', 'image peanut = "images/peanut.webp"']:
-              assert token in art, f"Art definition missing: {token}"
-
-          presentation = Path("game/screens.rpy").read_text(encoding="utf-8")
-          for token in [
-              "screen main_menu():",
-              "screen pause_menu():",
-              "screen save():",
-              "screen load():",
-              "screen preferences():",
-              'textbutton "NEW GAME"',
-              'textbutton "SAVE GAME"',
-          ]:
-              assert token in presentation, f"Presentation screen missing: {token}"
-
-          assert "define fm_scene = Dissolve(0.25)" in art
-          assert "with fm_scene" in script
-          assert 'action ShowMenu("pause_menu")' in script
-
-          for token in [
-              "label wednesday_yard:",
-              "label turbine_decision:",
-              "label turbine_sale:",
-              "label turbine_return:",
-              "label turbine_keep:",
-              "label complete_turbine_quest:",
-              'show screen fm_toast("QUEST STARTED: ABSOLUTELY NOT")',
-              'show screen fm_toast("QUEST COMPLETE: ABSOLUTELY NOT")',
-          ]:
-              assert token in script, f"Wednesday content missing: {token}"
-
-          assert 'screen fm_toast(message):' in presentation
-          assert 'text "ACTIVE JOB"' in script
-
-          # Phone control-flow regression guard:
-          # story use must Return() to the calling label, map use must only hide the overlay.
-          assert 'screen phone_screen(called=False):' in presentation
-          assert 'call screen phone_screen(called=True)' in script
-          assert 'action Show("phone_screen", called=False)' in script
-          assert 'if called:' in presentation and 'action Return()' in presentation
-          assert 'action Hide("phone_screen")' in presentation
-          assert 'SetScreenVariable("tab", "messages")' in presentation
-          assert 'SetScreenVariable("tab", "jobs")' in presentation
-          assert 'SetScreenVariable("tab", "bag")' in presentation
-          assert 'SetScreenVariable("tab", "stats")' in presentation
-          assert 'screen phone_screen():' not in script
-
-          # Character clarity / staging regression guards.
-          assert 'show wayne at fm_left\n    show dale at fm_center\n    show peanut at fm_right' not in script
-          assert 'show dale at fm_center with dissolve\n        show peanut at fm_right with dissolve' not in script
-          assert 'hide wayne with dissolve\n        show dale at fm_left with dissolve' in script
-          assert 'hide dale with dissolve\n        show peanut at fm_right with dissolve' in script
-          assert 'label delivery_dropoff:\n    scene bg sand_trap with fm_scene\n\n    # POV staging' in script
-
-          # Dialogue must stay anchored to the bottom on Android.
-          assert 'screen say(who, what):' in presentation
-          assert 'ypos 790' in presentation
-          assert 'xsize 1840' in presentation
-          assert 'background Solid("#071116f4")' in presentation
-          assert 'text "TAP TO CONTINUE"' in presentation
-
-          assert '"FRANK:' not in script, "Frank still has raw text-speaker dialogue"
-          assert '"PEANUT:' not in script, "Peanut still has raw text-speaker dialogue"
+          android = json.loads(Path("android.json").read_text())
+          options = Path("game/options.rpy").read_text()
+          script = Path("game/script.rpy").read_text()
+          screens = Path("game/screens.rpy").read_text()
+          assert android["package"] == "com.brannenservices.floridamanunsupervised"
+          assert android["version"] == "1.0.0" and android["numeric_version"] == 12
+          assert android["orientation"] == "portrait"
+          assert 'define config.version = "1.0.0"' in options
+          for token in ["FM_CHAINS", "FM_JOBS", "def fm_drag_drop", "def fm_turn_in", "label start:"]:
+              assert token in script, f"Missing gameplay system: {token}"
+          for token in ["screen main_menu():", "screen merge_game():", "draggroup:", 'textbutton "TAP FOR SALVAGE"', 'textbutton "DELIVER"']:
+              assert token in screens, f"Missing screen element: {token}"
+          assert Path("game/images/storm_porch.webp").exists()
           PY
 
       - name: Install stable test signing key
@@ -155,15 +72,9 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/dist"
           renpy-launcher android_build "$GITHUB_WORKSPACE" --destination "$GITHUB_WORKSPACE/dist"
 
-      - name: Show APK output
-        if: always()
-        shell: bash
-        run: |
-          find "$GITHUB_WORKSPACE" -maxdepth 4 -type f -name "*.apk" -print || true
-
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: FloridaManUnsupervised-v0.3.8-Android
+          name: FloridaManStormCleanup-v1.0.0-Android
           path: dist/*.apk
           if-no-files-found: error
