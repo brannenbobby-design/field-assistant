@@ -2,7 +2,7 @@
 
 Original Ren'Py adventure game set on Florida's Gulf Coast.
 
-## v0.3.2 Android test scope
+## v0.3.3 Android test scope
 
 ### Monday
 1. Opening choices and phone messages
@@ -24,14 +24,16 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 4. Choices affect stats, relationships, reputation, rent balance, and payout
 5. End Tuesday at Wayne's House to reach the Wednesday teaser
 
-## v0.3.2 presentation upgrade
+## v0.3.3 presentation upgrade
 - Eight illustrated Gulf Coast location backgrounds
-- Wayne, Dale, and corrected Kelsey character sprites
+- Wayne, Dale, corrected Kelsey, Frank, and Peanut character sprites
 - Dedicated bottom dialogue box so narration no longer collides with HUD text
 - Large touch-friendly choice buttons
 - HUD/status information restricted to the free-roam map
 - Scrollable phone screen with messages, quests, inventory, and stats
 - Scene-specific character placement instead of characters floating over every screen
+- Frank now appears in the rent/laundry scenes; Peanut appears in the battery and swordfish-delivery scenes
+- Named-character dialogue now uses Ren'Py Character speakers with distinct name colors
 - Stable development signing key for repeatable Android test updates
 
 ## Core systems
@@ -57,4 +59,4 @@ The checked-in keystore is intentionally a **development/test key only** so succ
 ## Running
 Open this folder as a Ren'Py project using Ren'Py 8.5.3 or install the Android artifact produced by GitHub Actions.
 
-Current milestone: validate the illustrated Monday → Tuesday → Wednesday-teaser path on Android, then expand Wednesday and add additional character poses/expressions.
+Current milestone: validate the fully illustrated Monday → Tuesday → Wednesday-teaser path on Android with the five-character cast, then expand Wednesday and add expression/pose variants.
