@@ -60,9 +60,9 @@ jobs:
           art = Path("game/art.rpy").read_text(encoding="utf-8")
           android = json.loads(Path("android.json").read_text(encoding="utf-8"))
 
-          assert 'define config.version = "0.3.6"' in options
-          assert 'define build.version = "0.3.6"' in options
-          assert android["version"] == "0.3.6" and android["numeric_version"] == 9
+          assert 'define config.version = "0.3.7"' in options
+          assert 'define build.version = "0.3.7"' in options
+          assert android["version"] == "0.3.7" and android["numeric_version"] == 10
 
           for token in [
               'define f = Character("Frank"',
@@ -119,6 +119,20 @@ jobs:
           assert 'SetScreenVariable("tab", "stats")' in presentation
           assert 'screen phone_screen():' not in script
 
+          # Character clarity / staging regression guards.
+          assert 'show wayne at fm_left\n    show dale at fm_center\n    show peanut at fm_right' not in script
+          assert 'show dale at fm_center with dissolve\n        show peanut at fm_right with dissolve' not in script
+          assert 'hide wayne with dissolve\n        show dale at fm_left with dissolve' in script
+          assert 'hide dale with dissolve\n        show peanut at fm_right with dissolve' in script
+          assert 'label delivery_dropoff:\n    scene bg sand_trap with fm_scene\n\n    # POV staging' in script
+
+          # Dialogue must stay anchored to the bottom on Android.
+          assert 'screen say(who, what):' in presentation
+          assert 'ypos 790' in presentation
+          assert 'xsize 1840' in presentation
+          assert 'background Solid("#071116f4")' in presentation
+          assert 'text "TAP TO CONTINUE"' in presentation
+
           assert '"FRANK:' not in script, "Frank still has raw text-speaker dialogue"
           assert '"PEANUT:' not in script, "Peanut still has raw text-speaker dialogue"
           PY
@@ -144,6 +158,6 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: FloridaManUnsupervised-v0.3.6-Android
+          name: FloridaManUnsupervised-v0.3.7-Android
           path: dist/*.apk
           if-no-files-found: error
