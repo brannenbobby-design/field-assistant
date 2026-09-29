@@ -100,7 +100,12 @@ init python:
             target = int(drop.drag_name)
         except (TypeError, ValueError):
             return
-        if source == target or not store.board[source]:
+        if not store.board[source]:
+            return
+        if source == target:
+            store.selected_tile = source
+            store.toast = "Selected " + FM_META[store.board[source]][1] + ". Tap CLEAR SELECTED to discard it."
+            renpy.restart_interaction()
             return
         source_item = store.board[source]
         target_item = store.board[target]
