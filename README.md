@@ -2,7 +2,7 @@
 
 Original Ren'Py adventure game set on Florida's Gulf Coast.
 
-## v0.3.4 Android test scope
+## v0.3.5 Android test scope
 
 ### Monday
 1. Opening choices and phone messages
@@ -22,9 +22,17 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 2. **Laundry Room Rescue**
 3. **A Simple Delivery** through Storage Unit 14 and the Sand Trap
 4. Choices affect stats, relationships, reputation, rent balance, and payout
-5. End Tuesday at Wayne's House to reach the Wednesday teaser
+5. End Tuesday at Wayne's House to reach Wednesday
 
-## v0.3.4 presentation upgrade
+### Wednesday
+1. Discover Dale's inert surplus turbine core in Wayne's yard
+2. Start **Absolutely Not**
+3. Confirm the turbine is an inert display core
+4. Choose to sell it to Peanut, return it to the surplus yard, or let Dale keep it
+5. Each route changes money, rent, reputation, inventory, and relationships
+6. Finish Wednesday with a route-specific ending
+
+## v0.3.5 presentation upgrade
 - Eight illustrated Gulf Coast location backgrounds
 - Wayne, Dale, corrected Kelsey, Frank, and Peanut character sprites
 - Dedicated bottom dialogue box so narration no longer collides with HUD text
@@ -40,6 +48,9 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 - Text speed, auto-forward, sound, music, and transition settings
 - Animated character entrances and 0.25-second scene dissolves
 - Menu access added directly to the free-roam HUD
+- Animated quest-start/completion notifications replace prototype quest text
+- Live ACTIVE JOB panel on the town map with context-sensitive objectives
+- Full Wednesday chapter with three meaningful turbine outcomes
 - Stable development signing key for repeatable Android test updates
 
 ## Core systems
@@ -65,4 +76,4 @@ The checked-in keystore is intentionally a **development/test key only** so succ
 ## Running
 Open this folder as a Ren'Py project using Ren'Py 8.5.3 or install the Android artifact produced by GitHub Actions.
 
-Current milestone: validate the v0.3.4 presentation layer on Android, then expand Wednesday and add expression/pose variants plus audio.
+Current milestone: validate the complete Monday → Wednesday flow on Android, then add expression/pose variants and a dedicated audio pass.

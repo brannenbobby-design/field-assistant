@@ -60,9 +60,9 @@ jobs:
           art = Path("game/art.rpy").read_text(encoding="utf-8")
           android = json.loads(Path("android.json").read_text(encoding="utf-8"))
 
-          assert 'define config.version = "0.3.4"' in options
-          assert 'define build.version = "0.3.4"' in options
-          assert android["version"] == "0.3.4" and android["numeric_version"] == 7
+          assert 'define config.version = "0.3.5"' in options
+          assert 'define build.version = "0.3.5"' in options
+          assert android["version"] == "0.3.5" and android["numeric_version"] == 8
 
           for token in [
               'define f = Character("Frank"',
@@ -91,6 +91,21 @@ jobs:
           assert "with fm_scene" in script
           assert 'action ShowMenu("pause_menu")' in script
 
+          for token in [
+              "label wednesday_yard:",
+              "label turbine_decision:",
+              "label turbine_sale:",
+              "label turbine_return:",
+              "label turbine_keep:",
+              "label complete_turbine_quest:",
+              'show screen fm_toast("QUEST STARTED: ABSOLUTELY NOT")',
+              'show screen fm_toast("QUEST COMPLETE: ABSOLUTELY NOT")',
+          ]:
+              assert token in script, f"Wednesday content missing: {token}"
+
+          assert 'screen fm_toast(message):' in presentation
+          assert 'text "ACTIVE JOB"' in script
+
           assert '"FRANK:' not in script, "Frank still has raw text-speaker dialogue"
           assert '"PEANUT:' not in script, "Peanut still has raw text-speaker dialogue"
           PY
@@ -116,6 +131,6 @@ jobs:
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: FloridaManUnsupervised-v0.3.4-Android
+          name: FloridaManUnsupervised-v0.3.5-Android
           path: dist/*.apk
           if-no-files-found: error

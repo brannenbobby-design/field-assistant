@@ -343,3 +343,34 @@ screen preferences():
                 style "fm_menu_button"
                 text_style "fm_menu_button_text"
                 xalign 0.5
+
+
+style fm_toast_frame is frame:
+    background Solid("#08151df2")
+    padding (34, 18)
+
+style fm_toast_text is text:
+    size 30
+    bold True
+    color "#ffd166"
+    outlines [(2, "#000000cc", 0, 0)]
+
+transform fm_toast_anim:
+    alpha 0.0
+    yoffset -30
+    easeout 0.22 alpha 1.0 yoffset 0
+    pause 1.75
+    easein 0.28 alpha 0.0 yoffset -18
+
+screen fm_toast(message):
+    zorder 100
+
+    frame:
+        at fm_toast_anim
+        style "fm_toast_frame"
+        xalign 0.5
+        yalign 0.10
+
+        text message style "fm_toast_text"
+
+    timer 2.35 action Hide("fm_toast")
