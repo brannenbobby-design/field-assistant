@@ -98,7 +98,7 @@ screen phone_screen():
                     if "Absolutely Not" in active_quests:
                         if turbine_stage == 0:
                             text "DALE: Before you get mad, I can explain the turbine." size 27
-                            text "FRANK: Whatever is in your yard needs to be gone by five." size 27
+                            text "LANDLORD: Whatever is in your yard needs to be gone by five." size 27
                         elif turbine_stage == 1:
                             text "KELSEY: I found somebody willing to pay for that ridiculous thing." size 27
                     elif "A Simple Delivery" in active_quests:
