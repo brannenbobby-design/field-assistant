@@ -59,80 +59,7 @@ screen florida_backdrop():
 screen hud():
     null width 1 height 1
 
-screen phone_screen():
-    modal True
-    add Solid("#061015f2")
-
-    frame:
-        style "fm_panel"
-        xalign 0.5
-        yalign 0.5
-        xsize 940
-        ysize 900
-
-        vbox:
-            spacing 14
-
-            text "WAYNE'S PHONE" style "fm_title"
-            text "[day] — [tod]   |   $[money:.2f]   |   Gas [gas]%" size 27 color "#9fd8df"
-
-            viewport:
-                ymaximum 670
-                mousewheel True
-                draggable True
-
-                vbox:
-                    spacing 14
-                    xsize 840
-
-                    text "MESSAGES" size 29 color "#ffd166"
-
-                    if rent_due > 0:
-                        text "LANDLORD: Rent due: $[rent_due]." size 27
-
-                    if "The Cooler Incident" in active_quests:
-                        text "KELSEY: Cooler. Today. Seriously." size 27
-                    elif "The Cooler Incident" in completed_quests:
-                        text "KELSEY: I got the cooler. We're still discussing the power-tools comment." size 27
-
-                    if "Absolutely Not" in active_quests:
-                        if turbine_stage == 0:
-                            text "DALE: Before you get mad, I can explain the turbine." size 27
-                            text "LANDLORD: Whatever is in your yard needs to be gone by five." size 27
-                        elif turbine_stage == 1:
-                            text "KELSEY: I found somebody willing to pay for that ridiculous thing." size 27
-                    elif "A Simple Delivery" in active_quests:
-                        if delivery_stage == 1:
-                            text "DALE: Storage lot. Unit 14. Bring straps." size 27
-                        elif delivery_stage == 2:
-                            text "DALE: Take the fish to the Sand Trap. Don't ask." size 27
-                    elif day_number >= 2 and "A Simple Delivery" not in completed_quests:
-                        text "DALE: Boat buyer has another job. Might pay better." size 27
-                    elif "Boat With No Name" in active_quests:
-                        text "DALE: Boat still needs fuel, battery, key." size 27
-                    else:
-                        text "DALE: You awake?" size 27
-
-                    null height 8
-                    text "ACTIVE QUESTS" size 29 color "#ffd166"
-
-                    if active_quests:
-                        for q in active_quests:
-                            text "• [q]" size 27
-                    else:
-                        text "Nothing active. Somehow." size 27
-
-                    null height 8
-                    text "INVENTORY" size 29 color "#ffd166"
-                    text ", ".join(inventory) size 27
-
-                    null height 8
-                    text "STATS" size 29 color "#ffd166"
-                    text "Charm [charm]   Grit [grit]" size 27
-                    text "Street Smarts [street_smarts]   Dumb Luck [dumb_luck]" size 27
-                    text "Dale [dale_relationship]   Kelsey [kelsey_relationship]   Reputation [reputation]" size 27
-
-            textbutton "CLOSE" action Hide("phone_screen") xalign 0.5
+# Phone UI lives in game/screens.rpy as of v0.3.6.
 
 screen town_map_screen():
     modal True
@@ -165,7 +92,7 @@ screen town_map_screen():
                 spacing 14
 
                 textbutton "PHONE":
-                    action Show("phone_screen")
+                    action Show("phone_screen", called=False)
                     xsize 220
                     yminimum 64
 
@@ -292,7 +219,7 @@ label wayne_house:
 
     menu:
         "Check phone":
-            call screen phone_screen
+            call screen phone_screen(called=True)
 
         "Search for Kelsey's cooler" if "The Cooler Incident" in active_quests and not cooler_found:
             jump cooler_search

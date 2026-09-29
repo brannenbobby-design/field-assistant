@@ -2,7 +2,7 @@
 
 Original Ren'Py adventure game set on Florida's Gulf Coast.
 
-## v0.3.5 Android test scope
+## v0.3.6 Android test scope
 
 ### Monday
 1. Opening choices and phone messages
@@ -32,13 +32,15 @@ Original Ren'Py adventure game set on Florida's Gulf Coast.
 5. Each route changes money, rent, reputation, inventory, and relationships
 6. Finish Wednesday with a route-specific ending
 
-## v0.3.5 presentation upgrade
+## v0.3.6 presentation upgrade
 - Eight illustrated Gulf Coast location backgrounds
 - Wayne, Dale, corrected Kelsey, Frank, and Peanut character sprites
 - Dedicated bottom dialogue box so narration no longer collides with HUD text
 - Large touch-friendly choice buttons
 - HUD/status information restricted to the free-roam map
-- Scrollable phone screen with messages, quests, inventory, and stats
+- Full smartphone-style phone UI with hardware bezel, status bar, app header, message cards, gesture bar, and four app tabs
+- Phone tabs for Messages, Jobs, Inventory, and Stats
+- Fixed the story-phone freeze by returning correctly from a called phone screen while still allowing map-overlay phone use
 - Scene-specific character placement instead of characters floating over every screen
 - Frank now appears in the rent/laundry scenes; Peanut appears in the battery and swordfish-delivery scenes
 - Named-character dialogue now uses Ren'Py Character speakers with distinct name colors
@@ -76,4 +78,4 @@ The checked-in keystore is intentionally a **development/test key only** so succ
 ## Running
 Open this folder as a Ren'Py project using Ren'Py 8.5.3 or install the Android artifact produced by GitHub Actions.
 
-Current milestone: validate the complete Monday → Wednesday flow on Android, then add expression/pose variants and a dedicated audio pass.
+Current milestone: validate the repaired smartphone UI and full Monday → Wednesday flow on Android, then add expression/pose variants and a dedicated audio pass.

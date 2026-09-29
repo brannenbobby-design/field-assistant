@@ -374,3 +374,372 @@ screen fm_toast(message):
         text message style "fm_toast_text"
 
     timer 2.35 action Hide("fm_toast")
+
+
+style fm_phone_shell is frame:
+    background Solid("#020407")
+    padding (14, 14)
+
+style fm_phone_screen is frame:
+    background Solid("#101820")
+    padding (0, 0)
+
+style fm_phone_header is frame:
+    background Solid("#111d25")
+    padding (22, 16)
+
+style fm_phone_card is frame:
+    background Solid("#18242d")
+    padding (18, 14)
+
+style fm_phone_card_alt is frame:
+    background Solid("#132029")
+    padding (18, 14)
+
+style fm_phone_tab is button:
+    xsize 132
+    yminimum 66
+    background Solid("#101820")
+    hover_background Solid("#1f3440")
+    selected_background Solid("#244a5a")
+    padding (10, 10)
+
+style fm_phone_tab_text is button_text:
+    size 20
+    color "#9fb1ba"
+    hover_color "#ffffff"
+    selected_color "#72d4ff"
+    text_align 0.5
+    xalign 0.5
+
+style fm_phone_close is button:
+    xsize 150
+    yminimum 56
+    background Solid("#22313a")
+    hover_background Solid("#354c58")
+    padding (12, 8)
+
+style fm_phone_close_text is button_text:
+    size 20
+    color "#f6f1e7"
+    hover_color "#ffd166"
+    text_align 0.5
+    xalign 0.5
+
+transform fm_phone_pop:
+    alpha 0.0
+    zoom 0.97
+    easeout 0.18 alpha 1.0 zoom 1.0
+
+screen fm_phone_message(sender, body, accent="#72d4ff"):
+    frame:
+        style "fm_phone_card"
+        xfill True
+
+        vbox:
+            spacing 5
+
+            text sender:
+                size 20
+                bold True
+                color accent
+
+            text body:
+                size 24
+                color "#f1f5f6"
+                xmaximum 515
+
+screen fm_phone_job(title, objective, accent="#ffd166"):
+    frame:
+        style "fm_phone_card_alt"
+        xfill True
+
+        vbox:
+            spacing 7
+
+            text title:
+                size 23
+                bold True
+                color accent
+
+            text objective:
+                size 21
+                color "#c8d2d7"
+                xmaximum 515
+
+screen phone_screen(called=False):
+    modal True
+    zorder 90
+    default tab = "messages"
+
+    add Solid("#02060acc")
+
+    if called:
+        key "game_menu" action Return()
+    else:
+        key "game_menu" action Hide("phone_screen")
+
+    frame:
+        at fm_phone_pop
+        style "fm_phone_shell"
+        xalign 0.5
+        yalign 0.5
+        xsize 650
+        ysize 1030
+
+        fixed:
+            frame:
+                style "fm_phone_screen"
+                xfill True
+                yfill True
+
+            # Earpiece / camera island.
+            frame:
+                xalign 0.5
+                ypos 18
+                xsize 148
+                ysize 28
+                background Solid("#000000")
+                padding (0, 0)
+
+            # Status bar.
+            text "[day] • [tod]":
+                xpos 28
+                ypos 24
+                size 19
+                color "#dce6ea"
+
+            text "LTE    100%":
+                xalign 0.95
+                ypos 24
+                size 19
+                color "#dce6ea"
+
+            # App header.
+            frame:
+                style "fm_phone_header"
+                xpos 14
+                ypos 62
+                xsize 594
+                ysize 92
+
+                hbox:
+                    xfill True
+                    yalign 0.5
+
+                    vbox:
+                        xsize 390
+                        text "WAYNE'S PHONE":
+                            size 28
+                            bold True
+                            color "#ffffff"
+                        text "$[money:.2f]  •  Gas [gas]%":
+                            size 20
+                            color "#8ecbd9"
+
+                    if called:
+                        textbutton "PUT AWAY":
+                            action Return()
+                            style "fm_phone_close"
+                            text_style "fm_phone_close_text"
+                    else:
+                        textbutton "PUT AWAY":
+                            action Hide("phone_screen")
+                            style "fm_phone_close"
+                            text_style "fm_phone_close_text"
+
+            # App content area.
+            frame:
+                xpos 28
+                ypos 174
+                xsize 566
+                ysize 700
+                background Solid("#0d151b")
+                padding (14, 14)
+
+                if tab == "messages":
+                    viewport:
+                        mousewheel True
+                        draggable True
+                        scrollbars "vertical"
+
+                        vbox:
+                            spacing 12
+                            xfill True
+
+                            text "MESSAGES":
+                                size 25
+                                bold True
+                                color "#ffffff"
+
+                            if rent_due > 0:
+                                use fm_phone_message("LANDLORD", "Rent due: $[rent_due].", "#f6c67b")
+
+                            if "The Cooler Incident" in active_quests:
+                                use fm_phone_message("KELSEY", "Cooler. Today. Seriously.", "#ff9fc8")
+                            elif "The Cooler Incident" in completed_quests:
+                                use fm_phone_message("KELSEY", "I got the cooler. We're still discussing the power-tools comment.", "#ff9fc8")
+
+                            if "Absolutely Not" in active_quests:
+                                if turbine_stage == 0:
+                                    use fm_phone_message("DALE", "Before you get mad, I can explain the turbine.", "#f2b15f")
+                                    use fm_phone_message("LANDLORD", "Whatever is in your yard needs to be gone by five.", "#f6c67b")
+                                elif turbine_stage == 1:
+                                    use fm_phone_message("KELSEY", "I found somebody willing to pay for that ridiculous thing.", "#ff9fc8")
+                            elif "A Simple Delivery" in active_quests:
+                                if delivery_stage == 1:
+                                    use fm_phone_message("DALE", "Storage lot. Unit 14. Bring straps.", "#f2b15f")
+                                elif delivery_stage == 2:
+                                    use fm_phone_message("DALE", "Take the fish to the Sand Trap. Don't ask.", "#f2b15f")
+                            elif day_number >= 2 and "A Simple Delivery" not in completed_quests:
+                                use fm_phone_message("DALE", "Boat buyer has another job. Might pay better.", "#f2b15f")
+                            elif "Boat With No Name" in active_quests:
+                                use fm_phone_message("DALE", "Boat still needs fuel, battery, key.", "#f2b15f")
+                            else:
+                                use fm_phone_message("DALE", "You awake?", "#f2b15f")
+
+                elif tab == "jobs":
+                    viewport:
+                        mousewheel True
+                        draggable True
+                        scrollbars "vertical"
+
+                        vbox:
+                            spacing 12
+                            xfill True
+
+                            text "JOBS":
+                                size 25
+                                bold True
+                                color "#ffffff"
+
+                            if "Absolutely Not" in active_quests:
+                                if turbine_stage == 0:
+                                    use fm_phone_job("Absolutely Not", "Figure out what Dale had delivered.")
+                                else:
+                                    use fm_phone_job("Absolutely Not", "Decide what happens to the turbine core.")
+                            elif "Boat With No Name" in active_quests:
+                                use fm_phone_job("Boat With No Name", "Find fuel, battery, and an ignition key.")
+                            elif "The Cooler Incident" in active_quests:
+                                use fm_phone_job("The Cooler Incident", "Find and return Kelsey's locked cooler.")
+                            elif "Laundry Room Rescue" in active_quests:
+                                use fm_phone_job("Laundry Room Rescue", "Fix the apartment laundry-room door.")
+                            elif "A Simple Delivery" in active_quests:
+                                if delivery_stage == 1:
+                                    use fm_phone_job("A Simple Delivery", "Meet Dale at Storage Unit 14.")
+                                else:
+                                    use fm_phone_job("A Simple Delivery", "Deliver the fiberglass swordfish to the Sand Trap.")
+                            elif "An Opportunity" in active_quests:
+                                use fm_phone_job("An Opportunity", "Meet Dale and find out what this 'opportunity' is.")
+                            else:
+                                text "No active jobs. Suspiciously peaceful.":
+                                    size 23
+                                    color "#aab7bd"
+
+                            null height 10
+                            text "COMPLETED: [len(completed_quests)]":
+                                size 21
+                                color "#7fa6b5"
+
+                            for q in completed_quests:
+                                text "✓ [q]":
+                                    size 21
+                                    color "#96c79d"
+
+                elif tab == "bag":
+                    viewport:
+                        mousewheel True
+                        draggable True
+                        scrollbars "vertical"
+
+                        vbox:
+                            spacing 12
+                            xfill True
+
+                            text "INVENTORY":
+                                size 25
+                                bold True
+                                color "#ffffff"
+
+                            for item in inventory:
+                                frame:
+                                    style "fm_phone_card_alt"
+                                    xfill True
+                                    text item:
+                                        size 23
+                                        color "#eef3f5"
+
+                else:
+                    viewport:
+                        mousewheel True
+                        draggable True
+                        scrollbars "vertical"
+
+                        vbox:
+                            spacing 12
+                            xfill True
+
+                            text "PROFILE":
+                                size 25
+                                bold True
+                                color "#ffffff"
+
+                            use fm_phone_job("Money", "$[money:.2f]", "#72d4ff")
+                            use fm_phone_job("Gas", "[gas]%", "#72d4ff")
+
+                            if rent_due > 0:
+                                use fm_phone_job("Rent Due", "$[rent_due]", "#f6c67b")
+
+                            use fm_phone_job("Charm", "[charm]", "#ff9fc8")
+                            use fm_phone_job("Grit", "[grit]", "#e1a467")
+                            use fm_phone_job("Street Smarts", "[street_smarts]", "#72d4ff")
+                            use fm_phone_job("Dumb Luck", "[dumb_luck]", "#ffd166")
+                            use fm_phone_job("Dale", "[dale_relationship]", "#f2b15f")
+                            use fm_phone_job("Kelsey", "[kelsey_relationship]", "#ff9fc8")
+                            use fm_phone_job("Reputation", "[reputation]", "#96c79d")
+
+            # Bottom app dock.
+            frame:
+                xpos 20
+                ypos 892
+                xsize 610
+                ysize 92
+                background Solid("#0a1117")
+                padding (10, 10)
+
+                hbox:
+                    spacing 8
+                    xalign 0.5
+
+                    textbutton "MSGS":
+                        action SetScreenVariable("tab", "messages")
+                        selected (tab == "messages")
+                        style "fm_phone_tab"
+                        text_style "fm_phone_tab_text"
+
+                    textbutton "JOBS":
+                        action SetScreenVariable("tab", "jobs")
+                        selected (tab == "jobs")
+                        style "fm_phone_tab"
+                        text_style "fm_phone_tab_text"
+
+                    textbutton "BAG":
+                        action SetScreenVariable("tab", "bag")
+                        selected (tab == "bag")
+                        style "fm_phone_tab"
+                        text_style "fm_phone_tab_text"
+
+                    textbutton "STATS":
+                        action SetScreenVariable("tab", "stats")
+                        selected (tab == "stats")
+                        style "fm_phone_tab"
+                        text_style "fm_phone_tab_text"
+
+            # Gesture bar.
+            frame:
+                xalign 0.5
+                ypos 995
+                xsize 150
+                ysize 7
+                background Solid("#d8e1e5")
+                padding (0, 0)
