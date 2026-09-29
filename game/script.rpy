@@ -36,6 +36,13 @@ default delivery_stage = 0
 default delivery_strapped = False
 default delivery_damage = False
 
+default wednesday_started = False
+default turbine_stage = 0
+default turbine_route = ""
+default turbine_tag_read = False
+default turbine_called_dale = False
+default turbine_called_kelsey = False
+
 init python:
     periods = ["Morning", "Afternoon", "Evening", "Night"]
 
@@ -88,7 +95,13 @@ screen phone_screen():
                     elif "The Cooler Incident" in completed_quests:
                         text "KELSEY: I got the cooler. We're still discussing the power-tools comment." size 27
 
-                    if "A Simple Delivery" in active_quests:
+                    if "Absolutely Not" in active_quests:
+                        if turbine_stage == 0:
+                            text "DALE: Before you get mad, I can explain the turbine." size 27
+                            text "FRANK: Whatever is in your yard needs to be gone by five." size 27
+                        elif turbine_stage == 1:
+                            text "KELSEY: I found somebody willing to pay for that ridiculous thing." size 27
+                    elif "A Simple Delivery" in active_quests:
                         if delivery_stage == 1:
                             text "DALE: Storage lot. Unit 14. Bring straps." size 27
                         elif delivery_stage == 2:
@@ -183,6 +196,9 @@ screen town_map_screen():
             if "A Simple Delivery" in active_quests and delivery_stage == 1:
                 textbutton "Storage Lot — UNIT 14" action Jump("storage_lot") xfill True
 
+            if "Absolutely Not" in active_quests:
+                textbutton "Wayne's Yard — TURBINE" action Jump("wednesday_yard") xfill True
+
             if tod in ["Afternoon", "Evening", "Night"]:
                 if "A Simple Delivery" in active_quests and delivery_stage == 2:
                     textbutton "The Sand Trap — MAKE DELIVERY" action Jump("sand_trap") xfill True
@@ -190,6 +206,31 @@ screen town_map_screen():
                     textbutton "The Sand Trap" action Jump("sand_trap") xfill True
             else:
                 text "The Sand Trap — too early for respectable bad decisions." size 24 color "#b8b8b8"
+
+    frame:
+        style "fm_panel"
+        xalign 0.95
+        yalign 0.57
+        xsize 500
+
+        vbox:
+            spacing 10
+            text "ACTIVE JOB" size 30 color "#ffd166"
+
+            if active_quests:
+                text "[active_quests[0]]" size 28 color "#f6f1e7"
+
+                if "Absolutely Not" in active_quests:
+                    if turbine_stage == 0:
+                        text "Figure out what Dale had delivered." size 23 color "#c9d5d9"
+                    elif turbine_stage == 1:
+                        text "Decide what happens to the turbine core." size 23 color "#c9d5d9"
+                elif "Boat With No Name" in active_quests:
+                    text "Find fuel, battery, and an ignition key." size 23 color "#c9d5d9"
+                elif "A Simple Delivery" in active_quests:
+                    text "Finish Dale's delivery." size 23 color "#c9d5d9"
+            else:
+                text "No active jobs." size 24 color "#c9d5d9"
 
     text "Tap a destination. Story scenes keep the HUD out of the way." size 22 color "#d7ddd9" xalign 0.97 yalign 0.96
 
@@ -231,7 +272,7 @@ label start:
     if "An Opportunity" not in active_quests:
         $ active_quests.append("An Opportunity")
 
-    "QUEST STARTED: An Opportunity"
+    show screen fm_toast("QUEST STARTED: AN OPPORTUNITY")
     jump town_map
 
 label town_map:
@@ -319,7 +360,7 @@ label dale_house:
         if "Boat With No Name" not in active_quests:
             $ active_quests.append("Boat With No Name")
 
-        "QUEST STARTED: Boat With No Name"
+        show screen fm_toast("QUEST STARTED: BOAT WITH NO NAME")
         "Needs: fuel, battery, ignition key."
     else:
         "The airboat remains exactly where an airboat should not be."
@@ -454,7 +495,7 @@ label finish_boat:
 
     $ dale_relationship += 1
 
-    "QUEST COMPLETE: Boat With No Name"
+    show screen fm_toast("QUEST COMPLETE: BOAT WITH NO NAME")
     "Wayne earned $150."
     $ tod = "Evening"
     "Monday evening is now open."
@@ -491,7 +532,7 @@ label sand_trap_evening:
     if "The Cooler Incident" not in active_quests and "The Cooler Incident" not in completed_quests:
         $ active_quests.append("The Cooler Incident")
 
-    "NEW QUEST: The Cooler Incident"
+    show screen fm_toast("NEW QUEST: THE COOLER INCIDENT")
     $ tod = "Night"
     "By the time Wayne leaves the Sand Trap, it's officially night."
     jump town_map
@@ -544,7 +585,7 @@ label return_cooler:
     if "The Cooler Incident" not in completed_quests:
         $ completed_quests.append("The Cooler Incident")
 
-    "QUEST COMPLETE: The Cooler Incident"
+    show screen fm_toast("QUEST COMPLETE: THE COOLER INCIDENT")
     jump town_map
 
 label tuesday_morning:
@@ -609,7 +650,7 @@ label landlord_scene:
             if "Laundry Room Rescue" not in active_quests and "Laundry Room Rescue" not in completed_quests:
                 $ active_quests.append("Laundry Room Rescue")
 
-            "NEW QUEST: Laundry Room Rescue"
+            show screen fm_toast("NEW QUEST: LAUNDRY ROOM RESCUE")
 
     jump town_map
 
@@ -646,7 +687,7 @@ label dale_tuesday:
     if tod == "Morning":
         $ advance_time()
 
-    "NEW QUEST: A Simple Delivery"
+    show screen fm_toast("NEW QUEST: A SIMPLE DELIVERY")
     "Meet Dale at Storage Unit 14."
     jump town_map
 
@@ -689,7 +730,7 @@ label laundry_room_rescue:
         $ completed_quests.append("Laundry Room Rescue")
 
     $ advance_time()
-    "QUEST COMPLETE: Laundry Room Rescue"
+    show screen fm_toast("QUEST COMPLETE: LAUNDRY ROOM RESCUE")
     jump town_map
 
 label storage_lot:
@@ -786,7 +827,7 @@ label delivery_dropoff:
     $ dale_relationship += 1
     $ advance_time()
 
-    "QUEST COMPLETE: A Simple Delivery"
+    show screen fm_toast("QUEST COMPLETE: A SIMPLE DELIVERY")
     "Tuesday is getting late."
     jump town_map
 
@@ -797,6 +838,7 @@ label wednesday_teaser:
     $ day = "Wednesday"
     $ day_number = 3
     $ tod = "Morning"
+    $ wednesday_started = True
 
     centered "8:03 AM — WEDNESDAY"
     "Three missed calls from Dale."
@@ -806,5 +848,190 @@ label wednesday_teaser:
 
     w "Absolutely not."
 
-    centered "END OF v0.3.4 TEST BUILD"
+    "Wayne pulls back one corner of the tarp."
+    "Under it is a decommissioned turbine core on a homemade steel cradle."
+
+    "His phone buzzes immediately."
+    d "Before you get mad, I can explain."
+    f "Whatever is in your yard needs to be gone by five."
+    k "Please tell me Dale did not buy a jet engine."
+
+    if "Absolutely Not" not in active_quests:
+        $ active_quests.append("Absolutely Not")
+
+    show screen fm_toast("QUEST STARTED: ABSOLUTELY NOT")
+    $ turbine_stage = 0
+
+    menu:
+        "Inspect the turbine and shipping tag.":
+            $ street_smarts += 1
+            jump wednesday_yard
+
+        "Call Dale before touching anything.":
+            $ turbine_called_dale = True
+            $ dale_relationship += 1
+            d "Technically I bought a turbine-shaped opportunity."
+            jump wednesday_yard
+
+        "Send Kelsey a photo and ask what she knows.":
+            $ turbine_called_kelsey = True
+            $ kelsey_relationship += 1
+            k "Give me ten minutes. And don't let Dale start it."
+            jump wednesday_yard
+
+label wednesday_yard:
+    scene bg wednesday with fm_scene
+    show wayne at fm_left
+
+    if turbine_stage == 0:
+        "The metal data plate is sun-faded but readable."
+        "INERT DISPLAY CORE. NO COMBUSTOR. NOT AIRWORTHY."
+        $ turbine_tag_read = True
+        $ turbine_stage = 1
+        $ street_smarts += 1
+
+        w "Good. So it can't launch the trailer into low orbit."
+
+        "Dale pulls up like he has been waiting for that exact sentence."
+        show dale at fm_right with dissolve
+        d "See? Safe."
+        w "That is not what that word means."
+
+        "Kelsey texts a screenshot from a local listing."
+        k "Peanut will pay three-fifty for it as bar decor."
+        f "Four fifty-five. It is gone at five."
+
+        jump turbine_decision
+
+    elif turbine_stage == 1:
+        jump turbine_decision
+    else:
+        jump wednesday_wrap
+
+label turbine_decision:
+    scene bg wednesday with fm_scene
+    show wayne at fm_left
+    show dale at fm_right
+
+    "Three options. Somehow none of them are normal."
+
+    menu:
+        "Sell it to Peanut for $350.":
+            $ turbine_route = "sell"
+            $ charm += 1
+            jump turbine_sale
+
+        "Return it to the surplus yard and end this nonsense.":
+            $ turbine_route = "return"
+            $ street_smarts += 1
+            jump turbine_return
+
+        "Let Dale keep it for whatever terrible idea comes next.":
+            $ turbine_route = "keep"
+            $ dumb_luck += 1
+            $ dale_relationship += 2
+            jump turbine_keep
+
+label turbine_sale:
+    scene bg sand_trap with fm_scene
+    show wayne at fm_left
+    show peanut at fm_right
+
+    p "That thing is going over the outdoor bar."
+    w "Of course it is."
+
+    $ money += 350
+    $ reputation += 1
+    $ turbine_stage = 3
+
+    "Peanut counts out $350."
+    show screen fm_toast("SOLD TURBINE CORE: +$350")
+
+    menu:
+        "Pay Frank $150 toward rent." if money >= 150 and rent_due > 0:
+            $ money -= 150
+            $ rent_due = max(0, rent_due - 150)
+            $ reputation += 1
+            f "Now we're having a much better Wednesday."
+
+        "Keep the cash for now.":
+            w "Future Wayne can negotiate with Frank."
+
+    jump complete_turbine_quest
+
+label turbine_return:
+    scene bg storage_lot with fm_scene
+    show wayne at fm_left
+    show dale at fm_right
+
+    "The surplus yard agrees to take the turbine back."
+    "The catch: forty dollars for their forklift and paperwork."
+
+    if money >= 40:
+        $ money -= 40
+        w "Forty bucks to erase one of Dale's ideas is probably market rate."
+    else:
+        d "I'll cover it."
+        $ dale_relationship -= 1
+        w "You absolutely will."
+
+    $ rent_due = max(0, rent_due - 50)
+    $ reputation += 2
+    $ turbine_stage = 3
+
+    f "It's gone. Fifty off what you owe me for not making this my problem."
+
+    jump complete_turbine_quest
+
+label turbine_keep:
+    scene bg dale_house with fm_scene
+    show wayne at fm_left
+    show dale at fm_right
+
+    "Two ratchet straps, one borrowed trailer, and several poor decisions later, the turbine is in Dale's yard."
+    d "Tell me that doesn't look fast."
+    w "It is currently sitting still."
+    d "For now."
+
+    $ money += 75
+    $ reputation -= 1
+    $ turbine_stage = 3
+
+    if "Turbine Claim Ticket" not in inventory:
+        $ inventory.append("Turbine Claim Ticket")
+
+    "Dale pays Wayne $75 for helping move his newest problem."
+    "Something about the way he says 'phase two' suggests this will matter later."
+
+    jump complete_turbine_quest
+
+label complete_turbine_quest:
+    if "Absolutely Not" in active_quests:
+        $ active_quests.remove("Absolutely Not")
+
+    if "Absolutely Not" not in completed_quests:
+        $ completed_quests.append("Absolutely Not")
+
+    show screen fm_toast("QUEST COMPLETE: ABSOLUTELY NOT")
+    $ tod = "Evening"
+
+    jump wednesday_wrap
+
+label wednesday_wrap:
+    scene bg wednesday with fm_scene
+    show wayne at fm_left
+
+    "By sunset, Wayne's yard is almost normal again."
+
+    if turbine_route == "sell":
+        k "You made money off Dale's mistake. That's disturbingly efficient."
+        w "I hate that this counts as a business model."
+    elif turbine_route == "return":
+        f "No turbines. No boats. No livestock."
+        w "Those rules feel weirdly specific."
+    elif turbine_route == "keep":
+        d "Phase two tomorrow."
+        w "There better not be a phase two."
+
+    centered "END OF v0.3.5 TEST BUILD"
     return
