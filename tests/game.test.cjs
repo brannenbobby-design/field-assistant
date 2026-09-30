@@ -40,6 +40,10 @@ for (let i = 0; i < G.SIZE && !played; i++) {
     if (result.ok) {
       played = true;
       assert.equal(trial.moves, G.JOBS[0].moves - 1);
+      assert.ok(result.animation.midBoard.length === G.SIZE, 'move animation records the swapped board');
+      assert.ok(result.animation.events.length > 0, 'clear and fall animations receive a resolved wave');
+      assert.ok(result.animation.events[0].clear.length >= 3, 'clear event identifies the matched tiles');
+      assert.equal(result.animation.events[0].after.length, G.SIZE, 'fall event includes the refilled board');
       assert.ok(trial.board.every(Boolean), 'gravity refills every cleared cell');
       assert.ok(Object.values(trial.cleared).reduce((a, b) => a + b, 0) >= 3, 'match adds debris to cleanup progress');
       assert.equal(G.scanMatches(trial.board).indices.size, 0, 'cascades settle before the next move');

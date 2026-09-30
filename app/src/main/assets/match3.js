@@ -115,10 +115,11 @@
     if (type === 'rainbow') board.forEach((item, i) => { if (item && item.chain === chain) result.add(i); });
     return result;
   }
-  function settle(state, initial, rng, preferred = -1, allowPowerCreation = true) {
+  function settle(state, initial, rng, preferred = -1, allowPowerCreation = true, events = []) {
     let pending = new Set(initial);
     let first = true, waves = 0;
     while (pending.size && waves++ < 30) {
+      const beforeBoard = state.board.slice();
       const removal = new Set(pending), activated = new Set();
       // Powers caught in a match chain together.
       let changed = true;
@@ -150,6 +151,7 @@
         keep = { index: plan.at, item: tile(chain, plan.kind) };
         removal.delete(plan.at);
       }
+      const clearedIndices = [...removal];
       for (const i of removal) {
         const item = state.board[i];
         if (item) {
@@ -167,6 +169,7 @@
         let cursor = 0;
         for (let r = ROWS - 1; r >= 0; r--) state.board[idx(r, c)] = cursor < survivors.length ? survivors[cursor++] : tile(candidateChain(JOBS[state.job]?.chains || Object.keys(CHAINS), rng));
       }
+      events.push({ before: beforeBoard, clear: clearedIndices, after: state.board.slice(), created: keep ? { index: keep.index, item: keep.item } : null, wave: events.length });
       const next = scanMatches(state.board);
       if (!next.indices.size) break;
       pending = next.indices;
@@ -197,20 +200,22 @@
       return { ok: false, reason: 'That swap did not make a match.' };
     }
     state.moves--;
+    const midBoard = state.board.slice(), events = [];
     if (powerIndex >= 0) {
       const item = state.board[powerIndex];
-      settle(state, activateTargets(state.board, powerIndex, item.power, item.chain), rng, -1, false);
-    } else settle(state, matches.indices, rng, b, true);
+      settle(state, activateTargets(state.board, powerIndex, item.power, item.chain), rng, -1, false, events);
+    } else settle(state, matches.indices, rng, b, true, events);
     if (!state.won && !state.failed && !rawPlayable(state.board)) shuffleDeadBoard(state, rng);
-    return { ok: true, matched: matches.indices.size, power: powerIndex >= 0 ? 'activated' : null };
+    return { ok: true, matched: matches.indices.size, power: powerIndex >= 0 ? 'activated' : null, animation: { midBoard, events, finalBoard: state.board.slice() } };
   }
   function activate(state, index, rng = Math.random) {
     const item = state.board[index];
     if (state.won || state.failed || state.moves <= 0 || !item?.power) return { ok: false, reason: 'Select an earned power-up.' };
     state.moves--;
-    settle(state, activateTargets(state.board, index, item.power, item.chain), rng, -1, false);
+    const midBoard = state.board.slice(), events = [];
+    settle(state, activateTargets(state.board, index, item.power, item.chain), rng, -1, false, events);
     if (!state.won && !state.failed && !rawPlayable(state.board)) shuffleDeadBoard(state, rng);
-    return { ok: true, power: item.power };
+    return { ok: true, power: item.power, animation: { midBoard, events, finalBoard: state.board.slice() } };
   }
   function nextJob(state, rng = Math.random) {
     if (!state.won || state.job >= JOBS.length) return false;
