@@ -2,7 +2,7 @@
 
 ## Core loop
 
-Swap two neighboring storm-debris tiles. Horizontal or vertical runs of three and solid 2×2 squares stick; all four tiles in a square clear together. Matched tiles pop away, survivors slide down, and fresh debris drops in from above. Cascades resolve in animated waves. Invalid swaps snap back and cost nothing.
+Swap two neighboring storm-debris tiles. Horizontal or vertical runs of three and complete 2×2 squares stick; all four tiles in a square clear together. Merely touching three pieces in an L does not count. Matched tiles pop away, survivors slide down, and fresh debris drops in from above. Cascades resolve in animated waves. Invalid swaps snap back and cost nothing. Swapping a power into a match resolves both the power and any newly formed line or square in the same wave.
 
 Each cleanup job sets two debris quotas and a move limit. Clear both quotas to finish; leftover moves award more stars. The board refills continuously, so the goal is clearing the requested mess rather than leaving a permanently empty board. If there are no legal swaps, the board reshuffles for free.
 
@@ -19,9 +19,11 @@ The play screen layers a translucent board and mission HUD over a full-screen Gu
 
 ## Jobs
 
-1. Fix the Porch: clear 10 soggy planks and 10 busted lawn chairs in 24 moves.
-2. Clear the Bait Shop: clear 12 palm-frond piles and 12 coolers in 26 moves.
-3. Build Gator Command: clear 14 satellite bait coolers and 14 storm-surfing sandals in 28 moves.
+The Florida map links the cleanup jobs into a small story route. The storm has passed, but a strange signal from a satellite cooler sends Florida Man along the Gulf Coast.
+
+1. **Panama City Beach — Fix the Porch:** clear 10 soggy planks and 10 busted lawn chairs in 24 moves. The neighborhood gator is already moving into the recliner.
+2. **Apalachicola — Clear the Bait Shop:** clear 12 palm-frond piles and 12 coolers in 26 moves. The team traces the radio signal before high tide.
+3. **Tampa Bay — Build Gator Command:** clear 14 satellite bait coolers and 14 storm-surfing sandals in 28 moves. Turn the salvage into an unnecessary command center before the next squall.
 
 Tile art/names escalate by job: porch junk becomes improbable construction equipment, chair debris becomes gator furniture, leaf piles become hurricane gadgets, coolers become command hardware, and flip-flops become storm gear.
 

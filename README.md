@@ -1,10 +1,10 @@
 # Florida Man: Storm Cleanup
 
-A portrait Android match-three puzzle built around the board: icon-only debris pieces, visual job targets, a move counter beside the grid, and a translucent play area over a full-screen Gulf Coast scene. Straight matches and solid 2×2 groups clear; four in a line still creates a blast power-up. New pieces slide and fall into each cascade.
+A portrait Android match-three puzzle built around the board: icon-only debris pieces, visual job targets, a move counter beside the grid, and a translucent play area over a full-screen Gulf Coast scene. Straight matches and complete 2×2 squares clear; four in a line still creates a blast power-up. New pieces slide and fall into each cascade. A story route takes Florida Man from Panama City Beach to Apalachicola and Tampa Bay.
 
 ## How to play
 
-- Swap neighboring pieces. The swap sticks only when it creates a match of three or more.
+- Swap neighboring pieces. A swap only sticks when it creates a horizontal or vertical run of at least three, or completes a 2×2 square.
 - Matched items pop away; survivors slide down and fresh junk falls in from above.
 - Match four for a row or column blast, five for a rainbow gator, or make a T/L match for a hurricane bomb.
 - Tap a power-up or swap it into a match to fire it.
@@ -14,4 +14,4 @@ A portrait Android match-three puzzle built around the board: icon-only debris p
 
 The game runs offline as local HTML/CSS/JavaScript inside a native Android WebView. Build with `gradle :app:assembleRelease`. GitHub Actions runs gameplay checks and produces a signed APK on pushes to `main`.
 
-The package ID `com.brannenservices.floridamanunsupervised` and existing development signing key are retained, so version 1.0.6 can update the prior test APK. The test key is for development installs, not Google Play publishing.
+The package ID `com.brannenservices.floridamanunsupervised` and existing development signing key are retained, so version 1.0.7 can update the prior test APK. The test key is for development installs, not Google Play publishing.

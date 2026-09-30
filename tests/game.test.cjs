@@ -15,6 +15,7 @@ assert.ok(G.rawPlayable(state.board), 'fresh board has at least one legal move')
 for (let seed = 1; seed <= 100; seed++) {
   const fresh = G.newState(rngFrom(seed));
   assert.equal(G.scanMatches(fresh.board).indices.size, 0, `seed ${seed} starts without line or square matches`);
+  assert.ok(G.rawPlayable(fresh.board), `seed ${seed} has at least one legal swap`);
 }
 
 // Invalid swaps restore the board and do not spend a move.
@@ -39,16 +40,39 @@ const squareState = G.newState(rngFrom(44));
 const chains = Object.keys(G.CHAINS);
 squareState.board = Array.from({ length: G.SIZE }, (_, i) => {
   const { row, col } = G.coords(i);
-  return { chain: chains[(row + col) % chains.length], power: null };
+  return { chain: chains[(row + 2 * col) % chains.length], power: null };
 });
 for (const i of [6, 8, 11, 12]) squareState.board[i] = { chain: 'wood', power: null };
-squareState.board[13] = { chain: 'chair', power: null };
+squareState.board[7] = { chain: 'chair', power: null };
+squareState.board[16] = { chain: 'chair', power: null };
 assert.equal(G.scanMatches(squareState.board).indices.size, 0, 'square test board starts without a match');
 const squareResult = G.swap(squareState, 7, 8, rngFrom(991));
 assert.equal(squareResult.ok, true, 'swap that completes a 2x2 group is legal');
 const squareCells = new Set([6, 7, 11, 12]);
 assert.deepEqual(squareResult.animation.events[0].clear.filter(i => squareCells.has(i)).sort((a, b) => a - b), [6, 7, 11, 12], 'all four square tiles clear together');
 assert.ok(squareState.cleared.wood >= 4, 'square match advances debris goals for all four pieces');
+
+// A touching L-shaped triplet is not a match by itself; it must complete a line or square.
+const looseCornerBoard = Array.from({ length: G.SIZE }, (_, i) => ({ chain: chains[(i * 3 + Math.floor(i / G.COLS)) % chains.length], power: null }));
+for (const i of [6, 11, 12]) looseCornerBoard[i] = { chain: 'wood', power: null };
+assert.equal(G.scanMatches(looseCornerBoard).indices.size, 0, 'three touching corners do not pre-clear a square setup');
+
+// Across many board seeds, every direct line/square piece is cleared or converted into a power.
+for (let seed = 1; seed <= 40; seed++) {
+  const base = G.newState(rngFrom(seed * 17));
+  for (let a = 0; a < G.SIZE; a++) for (const b of [a + 1, a + G.COLS]) {
+    if (b >= G.SIZE || (b === a + 1 && Math.floor(a / G.COLS) !== Math.floor(b / G.COLS))) continue;
+    const trial = { ...base, board: base.board.map(x => x && { ...x }), cleared: { ...base.cleared } };
+    [trial.board[a], trial.board[b]] = [trial.board[b], trial.board[a]];
+    const direct = G.scanMatches(trial.board).indices;
+    [trial.board[a], trial.board[b]] = [trial.board[b], trial.board[a]];
+    const result = G.swap(trial, a, b, rngFrom(seed + a * 31 + b));
+    if (!result.ok || !direct.size) continue;
+    const firstWave = new Set(result.animation.events[0].clear);
+    if (result.animation.events[0].created) firstWave.add(result.animation.events[0].created.index);
+    direct.forEach(i => assert.ok(firstWave.has(i), `seed ${seed}: matched tile ${i} must clear or become a power`));
+  }
+}
 
 // Find and play a legal swap: it clears pieces, refills the board by gravity, and uses one move.
 let played = false;

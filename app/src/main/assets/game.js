@@ -38,6 +38,36 @@
   function spritePosition(chain) { return `${Object.keys(G.CHAINS).indexOf(chain) * 25}% ${stageIndex() * 50}%`; }
   function tallyPower() { return state.board.filter(x => x?.power).length; }
 
+  function renderMap() {
+    const done = state.job >= G.JOBS.length || (state.won && state.job === G.JOBS.length - 1);
+    const current = Math.min(state.job, G.JOBS.length - 1);
+    const next = state.won && !done ? Math.min(state.job + 1, G.JOBS.length - 1) : current;
+    const job = G.JOBS[next];
+    $('map-coins').textContent = String(state.coins);
+    $('map-story').textContent = done ? 'The coast is clear, the radio is quiet, and the gator has somehow been promoted.' : job.story;
+    $('route-progress').textContent = done ? 'ROUTE COMPLETE' : `STOP ${next + 1} OF ${G.JOBS.length}`;
+    $('map-location').textContent = done ? 'GULF COAST · CLEANUP COMPLETE' : `${job.location} · ${job.region}`;
+    $('map-stars').textContent = done ? '★★★' : state.won && next === state.job ? '★★★' : '☆☆☆';
+    $('map-job-title').textContent = done ? 'FLORIDA THANKS YOU · THE END (FOR NOW)' : `${state.won ? 'NEXT STOP' : `JOB ${next + 1}`} · ${job.title.toUpperCase()}`;
+    $('map-play').innerHTML = done ? 'RIDE THE ROUTE AGAIN <span>↻</span>' : state.won ? `DRIVE TO ${job.location.toUpperCase()} <span>→</span>` : `HEAD TO ${job.title.toUpperCase()} <span>→</span>`;
+    $('node-0').className = `map-node node-one ${0 < state.job || (state.won && state.job === 0) ? 'complete' : state.job === 0 && !state.won ? 'current' : 'locked'}`;
+    $('node-1').className = `map-node node-two ${1 < state.job || (state.won && state.job === 1) ? 'complete' : state.job === 1 && !state.won ? 'current' : state.won && state.job === 0 ? 'unlocked' : 'locked'}`;
+    $('node-2').className = `map-node node-three ${2 < state.job || (state.won && state.job === 2) ? 'complete' : state.job === 2 && !state.won ? 'current' : state.won && state.job === 1 ? 'unlocked' : 'locked'}`;
+    [0, 1, 2].forEach(i => {
+      const node = $(`node-${i}`), available = i === state.job && !state.won || state.won && i === state.job + 1;
+      node.disabled = !available;
+      node.querySelector('.node-medal').textContent = i < state.job || (state.won && i === state.job) ? '✓' : String(i + 1);
+      node.setAttribute('aria-current', i === next ? 'step' : 'false');
+    });
+  }
+  function showMap() {
+    renderMap(); $('game-screen').classList.add('hidden'); $('map-screen').classList.remove('hidden');
+  }
+  function showGame() {
+    $('map-screen').classList.add('hidden'); $('game-screen').classList.remove('hidden');
+    if (localStorage.getItem('storm-cleanup-match3-tutorial-v3') !== 'seen') $('tutorial').classList.remove('hidden');
+  }
+
   function renderBoard(viewBoard = state.board, animateFrom = null) {
     const oldRects = new Map();
     if (animateFrom) {
@@ -100,7 +130,9 @@
     const done = state.job >= G.JOBS.length, job = done ? G.JOBS[G.JOBS.length - 1] : G.JOBS[state.job];
     $('job-kicker').textContent = done ? 'ALL JOBS COMPLETE' : `CURRENT JOB · ${state.job + 1} OF ${G.JOBS.length}`;
     $('job-title').textContent = done ? 'Coast is looking good!' : job.title;
-    $('job-copy').textContent = done ? 'You saved the block, the bait shop, and the neighborhood gator.' : job.copy;
+    $('job-copy').textContent = done ? 'You saved the block, the bait shop, and the neighborhood gator.' : `${job.location} · ${job.copy}`;
+    $('level-badge').textContent = done ? 'FLORIDA ROUTE COMPLETE' : `LEVEL ${state.job + 1} · ${job.region}`;
+    $('story-banner').textContent = done ? 'FLORIDA MAN · LEGEND OF THE GULF' : `FLORIDA MAN · ${job.location.toUpperCase()}`;
     const earned = state.won ? (state.moves >= Math.ceil(job.moves * .5) ? 3 : state.moves >= 3 ? 2 : 1) : Math.min(state.job, 3);
     $('stars').textContent = '★'.repeat(earned) + '☆'.repeat(3 - earned);
     $('requirements').replaceChildren();
@@ -130,7 +162,7 @@
     if (state.won) hintEl.textContent = 'Job cleared! Leftover moves boost your stars.';
     else if (state.failed) hintEl.textContent = 'Out of moves. Restart the job and take another run.';
     else if (selected !== null && state.board[selected]) hintEl.textContent = state.board[selected].power ? 'Tap the power-up again or swap it to fire.' : 'Selected. Swap it with a neighbor to make a match.';
-    else hintEl.textContent = '2×2 squares clear too · 4 in a line earns a blast';
+    else hintEl.textContent = 'Match 3+ in a line · 2×2 squares count · 4 in a line earns a blast';
   }
   function render() { renderBoard(state.board); renderHud(); }
 
@@ -223,9 +255,23 @@
     if (busy) return;
     if (state.failed) { G.restartJob(state); selected = null; save(); render(); say('Take two.'); return; }
     if (state.job >= G.JOBS.length) { state = G.newState(); selected = null; save(); render(); $('tutorial').classList.remove('hidden'); return; }
-    if (state.won) { G.nextJob(state); selected = null; save(); render(); say(state.job >= G.JOBS.length ? 'Cleanup complete. You are a county legend.' : 'Next job. The debris got weirder.'); }
+    if (state.won) { showMap(); }
   });
   $('start-button').addEventListener('click', () => { $('tutorial').classList.add('hidden'); localStorage.setItem('storm-cleanup-match3-tutorial-v3', 'seen'); });
-  if (localStorage.getItem('storm-cleanup-match3-tutorial-v3') === 'seen') $('tutorial').classList.add('hidden');
+  $('map-button').addEventListener('click', () => { if (!busy) showMap(); });
+  $('map-play').addEventListener('click', () => {
+    if (busy) return;
+    if (state.won && state.job === G.JOBS.length - 1) { G.nextJob(state); save(); showMap(); return; }
+    if (state.job >= G.JOBS.length) { state = G.newState(); selected = null; }
+    else if (state.won) G.nextJob(state);
+    selected = null; save(); render(); showGame();
+  });
+  [0, 1, 2].forEach(i => $(`node-${i}`).addEventListener('click', () => {
+    if ($(`node-${i}`).disabled) return;
+    if (state.won && i === state.job + 1) $('map-play').click();
+    else showGame();
+  }));
+  $('tutorial').classList.add('hidden');
   render();
+  renderMap();
 })(typeof window === 'undefined' ? globalThis : window);

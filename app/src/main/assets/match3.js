@@ -11,9 +11,9 @@
     flip: { colors: ['#f09bb0', '#e77f9d', '#ca74c5'], names: ['Lone flip-flop', 'Storm-surfing sandals', 'Cloud-surfing flip-flops'], icons: ['🩴', '🏄', '☁️'] }
   };
   const JOBS = [
-    { title: 'Fix the Porch', copy: 'Clear the storm junk blocking the porch. The gator already claimed the recliner.', needs: [{ chain: 'wood', amount: 10 }, { chain: 'chair', amount: 10 }], moves: 24, chains: ['wood', 'chair', 'leaf', 'cooler'] },
-    { title: 'Clear the Bait Shop', copy: 'Dig the bait shop out before the next high tide. Mind the satellite cooler.', needs: [{ chain: 'leaf', amount: 12 }, { chain: 'cooler', amount: 12 }], moves: 26, chains: ['leaf', 'cooler', 'wood', 'flip'] },
-    { title: 'Build Gator Command', copy: 'One last cleanup: build an extremely unnecessary command center for the neighborhood gator.', needs: [{ chain: 'cooler', amount: 14 }, { chain: 'flip', amount: 14 }], moves: 28, chains: ['cooler', 'flip', 'leaf', 'chair'] }
+    { location: 'Panama City Beach', region: 'GULF COAST', story: 'The storm shoved half the porch into the street. Help Florida Man clear a path before the neighborhood gator claims the whole house.', title: 'Fix the Porch', copy: 'Clear the storm junk blocking the porch. The gator already claimed the recliner.', needs: [{ chain: 'wood', amount: 10 }, { chain: 'chair', amount: 10 }], moves: 24, chains: ['wood', 'chair', 'leaf', 'cooler'] },
+    { location: 'Apalachicola', region: 'FORGOTTEN COAST', story: 'A strange radio signal is coming from the bait shop. Clear the driftwood and the satellite cooler before the next high tide.', title: 'Clear the Bait Shop', copy: 'Dig the bait shop out before the next high tide. Mind the satellite cooler.', needs: [{ chain: 'leaf', amount: 12 }, { chain: 'cooler', amount: 12 }], moves: 26, chains: ['leaf', 'cooler', 'wood', 'flip'] },
+    { location: 'Tampa Bay', region: 'SUNCOAST', story: 'The signal points to Tampa Bay. Turn the salvaged junk into Gator Command before the next squall rolls in.', title: 'Build Gator Command', copy: 'One last cleanup: build an extremely unnecessary command center for the neighborhood gator.', needs: [{ chain: 'cooler', amount: 14 }, { chain: 'flip', amount: 14 }], moves: 28, chains: ['cooler', 'flip', 'leaf', 'chair'] }
   ];
   const POWER = { row: { icon: '🌪️', label: 'Storm row-blast' }, column: { icon: '⚡', label: 'Lightning column-blast' }, bomb: { icon: '💥', label: 'Hurricane bomb' }, rainbow: { icon: '🌈', label: 'Rainbow gator' } };
 
@@ -58,6 +58,8 @@
         cells.forEach(i => indices.add(i));
       }
     }
+    // T/L intersections are already included by the union of their matching
+    // row and column runs. A loose connected triplet is not a valid match.
     return { lines, squares, indices };
   }
   function findPowerPlan(lines, preferred = -1) {
@@ -92,17 +94,16 @@
     for (let attempt = 0; attempt < 80; attempt++) {
       board = Array(SIZE).fill(null);
       for (let i = 0; i < SIZE; i++) {
-        const { row, col } = coords(i);
         let choices = activeChains.filter(chain => {
-          const horizontal = col >= 2 && board[idx(row, col - 1)]?.chain === chain && board[idx(row, col - 2)]?.chain === chain;
-          const vertical = row >= 2 && board[idx(row - 1, col)]?.chain === chain && board[idx(row - 2, col)]?.chain === chain;
-          const square = row >= 1 && col >= 1 && board[idx(row, col - 1)]?.chain === chain && board[idx(row - 1, col - 1)]?.chain === chain && board[idx(row - 1, col)]?.chain === chain;
-          return !horizontal && !vertical && !square;
+          board[i] = tile(chain);
+          const wouldMatch = scanMatches(board).indices.size > 0;
+          board[i] = null;
+          return !wouldMatch;
         });
         if (!choices.length) choices = activeChains;
         board[i] = tile(candidateChain(choices, rng));
       }
-      if (rawPlayable(board)) return board;
+      if (!scanMatches(board).indices.size && rawPlayable(board)) return board;
     }
     // A shuffle keeps the board usable if an unusual random stream repeats a dead layout.
     board = Array.from({ length: SIZE }, (_, i) => tile(activeChains[i % activeChains.length]));
@@ -214,7 +215,9 @@
     const midBoard = state.board.slice(), events = [];
     if (powerIndex >= 0) {
       const item = state.board[powerIndex];
-      settle(state, activateTargets(state.board, powerIndex, item.power, item.chain), rng, -1, false, events);
+      const targets = activateTargets(state.board, powerIndex, item.power, item.chain);
+      matches.indices.forEach(i => targets.add(i));
+      settle(state, targets, rng, -1, false, events);
     } else settle(state, matches.indices, rng, b, true, events);
     if (!state.won && !state.failed && !rawPlayable(state.board)) shuffleDeadBoard(state, rng);
     return { ok: true, matched: matches.indices.size, power: powerIndex >= 0 ? 'activated' : null, animation: { midBoard, events, finalBoard: state.board.slice() } };

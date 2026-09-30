@@ -8,12 +8,37 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="game-shell">
+  <main class="map-screen" id="map-screen">
+    <header class="map-topline"><span class="map-logo">FIELD NOTES <i>•</i> FLORIDA</span><span class="coin"><span class="coin-mark">1</span><b id="map-coins">0</b></span></header>
+    <section class="map-intro"><p class="eyebrow">THE STORM PASSED. THE TROUBLE DIDN'T.</p><h1>One long Florida cleanup</h1><p id="map-story">Start on the Gulf Coast. The first call is already waiting.</p></section>
+    <section class="route-card" aria-label="Florida cleanup route">
+      <div class="route-heading"><span>THE GULF COAST ROUTE</span><span id="route-progress">STOP 1 OF 3</span></div>
+      <div class="florida-map">
+        <svg viewBox="0 0 360 500" role="img" aria-label="Illustrated Florida map showing the cleanup route">
+          <defs><linearGradient id="land" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b8d68d"/><stop offset="1" stop-color="#658f69"/></linearGradient></defs>
+          <path class="map-land-shadow" d="M38 125 143 125 165 108 209 96 272 104 291 133 269 165 252 203 264 255 275 300 260 344 244 384 230 421 212 458 194 444 191 397 174 354 160 309 143 268 118 229 85 196 41 173Z"/>
+          <path class="map-land" d="M38 125 143 125 165 108 209 96 272 104 291 133 269 165 252 203 264 255 275 300 260 344 244 384 230 421 212 458 194 444 191 397 174 354 160 309 143 268 118 229 85 196 41 173Z"/>
+          <path class="map-road" d="M124 153 C142 166 147 185 168 201 S177 266 191 315"/>
+          <path class="map-waterway" d="M77 149 Q129 135 173 146 M202 128 Q251 136 270 155 M203 337 Q228 347 244 367"/>
+          <text x="212" y="235" class="map-label">FLORIDA</text><text x="58" y="110" class="map-water-label">GULF OF MEXICO</text>
+          <circle cx="122" cy="155" r="4" class="map-town"/><circle cx="159" cy="195" r="4" class="map-town"/><circle cx="190" cy="315" r="4" class="map-town"/>
+        </svg>
+        <button class="map-node node-one" id="node-0" aria-label="Panama City Beach, stop 1"><span class="node-medal">1</span><span class="node-name">Panama City<br><b>BEACH</b></span></button>
+        <button class="map-node node-two" id="node-1" aria-label="Apalachicola, stop 2"><span class="node-medal">2</span><span class="node-name">Apalachicola</span></button>
+        <button class="map-node node-three" id="node-2" aria-label="Tampa Bay, stop 3"><span class="node-medal">3</span><span class="node-name">Tampa Bay</span></button>
+      </div>
+      <div class="route-caption"><span class="route-pin">🐊</span><span id="map-location">PANAMA CITY BEACH · GULF COAST</span><span class="route-stars" id="map-stars">☆☆☆</span></div>
+    </section>
+    <footer class="map-footer"><p id="map-job-title">JOB 1 · FIX THE PORCH</p><button class="button button-main" id="map-play">HEAD TO THE PORCH <span>→</span></button></footer>
+  </main>
+
+  <main class="game-shell hidden" id="game-screen">
     <header class="hero">
-      <div class="topline"><span class="badge">LEVEL 1 <i>•</i> GULF COAST</span><span class="coin"><span class="coin-mark">1</span><b id="coins">0</b></span></div>
+      <div class="topline"><span class="badge" id="level-badge">LEVEL 1 <i>•</i> GULF COAST</span><span class="coin"><span class="coin-mark">1</span><b id="coins">0</b></span></div>
       <div class="title-lockup">
-        <p>FLORIDA MAN • GULF COAST</p>
+        <p id="story-banner">FLORIDA MAN • GULF COAST</p>
         <h1>STORM CLEANUP</h1>
+        <button class="map-link" id="map-button">FLORIDA MAP ↗</button>
       </div>
     </header>
 
@@ -24,9 +49,9 @@
     </section>
 
     <section class="board-wrap">
-      <div class="board-heading"><div><b>STORM DEBRIS</b><span>Match 3 or more to clear</span></div><div class="moves-badge"><span>MOVES</span><b id="moves">24</b></div><span class="board-count" id="board-count" aria-hidden="true">30 tiles</span></div>
+      <div class="board-heading"><div><b>STORM DEBRIS</b><span>Match 3+ in a line · 2×2 squares count</span></div><div class="moves-badge"><span>MOVES</span><b id="moves">24</b></div><span class="board-count" id="board-count" aria-hidden="true">30 tiles</span></div>
       <div class="board" id="board" role="grid" aria-label="Storm debris match three board"></div>
-      <div class="selection-hint" id="hint">2×2 squares clear too · 4 in a line earns a blast</div>
+      <div class="selection-hint" id="hint">Match 3+ in a line · 2×2 squares count · 4 in a line earns a blast</div>
     </section>
 
     <footer class="actions">
@@ -46,7 +71,7 @@
       <ol>
         <li><b>Swap neighboring junk</b> to line up three or more matching pieces.</li>
         <li>Matched pieces clear. New storm junk drops in from above.</li>
-        <li>Matching four in a square clears the whole square.</li>
+        <li>A complete 2×2 square clears all four pieces. Crossing runs clear together too.</li>
         <li><b>Match 4</b> for a line blast or <b>5</b> for a rainbow gator power-up.</li>
         <li>Clear the job's requested debris before your moves run out.</li>
       </ol>
