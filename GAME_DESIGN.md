@@ -4,7 +4,7 @@
 
 Swap two neighboring storm-debris tiles. Horizontal or vertical runs of three and complete 2×2 squares stick; all four tiles in a square clear together. Merely touching three pieces in an L does not count. Matched tiles pop away, survivors slide down, and fresh debris drops in from above. Cascades resolve in animated waves. Invalid swaps snap back and cost nothing. Swapping a power into a match resolves both the power and any newly formed line or square in the same wave.
 
-Each cleanup job sets two debris quotas and a move limit. Clear both quotas to finish; leftover moves award more stars. The board refills continuously, so the goal is clearing the requested mess rather than leaving a permanently empty board. If there are no legal swaps, the board reshuffles for free.
+Each cleanup job sets two debris quotas and a move limit. Clear both quotas to finish; leftover moves award more stars. After the final clear animation, a star-rated job-complete window appears and returns to the Florida map automatically after a short celebration. The board refills continuously, so the goal is clearing the requested mess rather than leaving a permanently empty board. If there are no legal swaps, the board reshuffles for free.
 
 ## Power-ups
 

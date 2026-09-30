@@ -7,7 +7,7 @@
   const SAVE_KEY = 'storm-cleanup-match3-v3';
   const tileTokens = new WeakMap();
   let nextToken = 1;
-  let selected = null, gesture = null, suppressClick = false, toastTimer, busy = false;
+  let selected = null, gesture = null, suppressClick = false, toastTimer, completionTimer, busy = false;
 
   function loadState() {
     try {
@@ -61,7 +61,25 @@
     });
   }
   function showMap() {
+    clearTimeout(completionTimer); completionTimer = null;
+    $('job-complete').classList.add('hidden'); $('job-complete').classList.remove('show');
     renderMap(); $('game-screen').classList.add('hidden'); $('map-screen').classList.remove('hidden');
+  }
+  function presentCompletion() {
+    if (!state.won || state.job >= G.JOBS.length) return;
+    const job = G.JOBS[state.job], stars = state.moves >= Math.ceil(job.moves * .5) ? 3 : state.moves >= 3 ? 2 : 1;
+    $('completion-kicker').textContent = `STOP ${state.job + 1} CLEARED`;
+    $('completion-job').textContent = job.title;
+    $('completion-stars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    $('completion-stars').setAttribute('aria-label', `${stars} star${stars === 1 ? '' : 's'}`);
+    $('completion-story').textContent = state.job + 1 < G.JOBS.length
+      ? `Nice work. The next cleanup is in ${G.JOBS[state.job + 1].location}.`
+      : 'The whole Gulf Coast route is clear. Florida Man rides again.';
+    const popup = $('job-complete');
+    popup.classList.remove('hidden', 'show');
+    requestAnimationFrame(() => popup.classList.add('show'));
+    clearTimeout(completionTimer);
+    completionTimer = setTimeout(showMap, 3200);
   }
   function showGame() {
     $('map-screen').classList.add('hidden'); $('game-screen').classList.remove('hidden');
@@ -155,7 +173,7 @@
     $('board-count').textContent = `${G.SIZE} tiles`;
     $('restart-button').disabled = busy || state.job >= G.JOBS.length;
     const action = $('job-button');
-    action.hidden = !(state.won || state.failed || done);
+    action.hidden = !(state.failed || done);
     $('action-buttons').classList.toggle('single-action', action.hidden);
     action.disabled = busy || !(state.won || state.failed || state.job >= G.JOBS.length);
     action.textContent = state.job >= G.JOBS.length ? 'PLAY AGAIN' : state.failed ? 'RETRY JOB' : state.won ? 'JOB COMPLETE · NEXT' : 'JOB IN PROGRESS';
@@ -192,6 +210,7 @@
     }
     await renderBoard(state.board, sequence.events.at(-1)?.after || sequence.midBoard);
     busy = false; renderHud(); save();
+    if (state.won) presentCompletion();
   }
 
   function tapCell(index) {
@@ -201,7 +220,7 @@
     if (item.power) {
       const oldBoard = state.board.slice(), result = G.activate(state, index);
       if (result.ok) {
-        animateTurn(result, oldBoard).then(() => say(`${G.POWER[result.power].label} fired!`));
+        animateTurn(result, oldBoard).then(() => { if (!state.won) say(`${G.POWER[result.power].label} fired!`); });
       } else say(result.reason);
       return;
     }
@@ -224,6 +243,7 @@
     if (!result.ok) { selected = null; render(); shake(from, to); say(result.reason); return; }
     const powerEarned = tallyPower() > before;
     animateTurn(result, oldBoard).then(() => {
+      if (state.won) return;
       if (powerEarned) say('Power-up earned! Tap it or swap it to fire.');
       else if (result.matched >= 5) say('Big match! Watch that cascade.');
       else say(result.power ? 'Power-up fired!' : 'Nice match! More junk is dropping in.');
@@ -258,6 +278,7 @@
     if (state.won) { showMap(); }
   });
   $('start-button').addEventListener('click', () => { $('tutorial').classList.add('hidden'); localStorage.setItem('storm-cleanup-match3-tutorial-v3', 'seen'); });
+  $('completion-continue').addEventListener('click', showMap);
   $('map-button').addEventListener('click', () => { if (!busy) showMap(); });
   $('map-play').addEventListener('click', () => {
     if (busy) return;

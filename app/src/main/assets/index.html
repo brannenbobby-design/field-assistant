@@ -79,6 +79,19 @@
       <button class="button button-main" id="start-button">LET'S CLEAN UP</button>
     </div>
   </div>
+  <div class="completion-overlay hidden" id="job-complete" aria-modal="true" role="dialog" aria-labelledby="completion-heading">
+    <div class="completion-card">
+      <div class="completion-confetti confetti-a">✦</div><div class="completion-confetti confetti-b">★</div>
+      <div class="completion-seal" aria-hidden="true">✓</div>
+      <p class="completion-kicker" id="completion-kicker">STOP CLEARED</p>
+      <h2 id="completion-heading">JOB COMPLETE!</h2>
+      <p class="completion-job" id="completion-job">Fix the Porch</p>
+      <div class="completion-stars" id="completion-stars" aria-label="Three stars">★★★</div>
+      <p class="completion-story" id="completion-story">The next stop is waiting.</p>
+      <button class="button button-main" id="completion-continue">CONTINUE TO THE FLORIDA MAP <span>→</span></button>
+      <div class="completion-timer" aria-hidden="true"><i></i></div>
+    </div>
+  </div>
   <div class="toast" id="toast" aria-live="polite"></div>
   <script src="match3.js"></script>
   <script src="game.js"></script>

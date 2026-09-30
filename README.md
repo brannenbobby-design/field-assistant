@@ -14,4 +14,6 @@ A portrait Android match-three puzzle built around the board: icon-only debris p
 
 The game runs offline as local HTML/CSS/JavaScript inside a native Android WebView. Build with `gradle :app:assembleRelease`. GitHub Actions runs gameplay checks and produces a signed APK on pushes to `main`.
 
-The package ID `com.brannenservices.floridamanunsupervised` and existing development signing key are retained, so version 1.0.7 can update the prior test APK. The test key is for development installs, not Google Play publishing.
+When a cleanup quota is met, a star-rated completion window appears after the last cascade and automatically returns to the route map; the next stop is ready there.
+
+The package ID `com.brannenservices.floridamanunsupervised` and existing development signing key are retained, so version 1.0.8 can update the prior test APK. The test key is for development installs, not Google Play publishing.

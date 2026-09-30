@@ -114,6 +114,25 @@ h2 { margin:3px 0 0; color:#fff6d7; font-size:clamp(18px,5vw,22px); line-height:
 .button:disabled { opacity:.58; cursor:default; }
 .modal-backdrop { position:fixed; inset:0; z-index:10; display:flex; justify-content:center; align-items:center; padding:18px; background:#101b35db; backdrop-filter:blur(7px); }
 .modal-backdrop.hidden { display:none; }
+.completion-overlay { position:fixed; inset:0; z-index:15; display:flex; justify-content:center; align-items:center; padding:22px; background:#08172bdc; backdrop-filter:blur(7px) saturate(125%); opacity:0; pointer-events:none; transition:opacity .2s ease-out; }
+.completion-overlay.show { opacity:1; pointer-events:auto; }
+.completion-overlay.hidden { display:none; }
+.completion-card { position:relative; width:min(100%,360px); overflow:hidden; padding:25px 20px 18px; border:2px solid #fff0a2; border-radius:24px 8px 24px 8px; color:#fff9e8; text-align:center; background:radial-gradient(ellipse at 50% 0%,#fff69d44,transparent 45%),linear-gradient(155deg,#275c72,#183c57 55%,#282d55); box-shadow:0 8px 0 #10263d,0 18px 50px #020c1dba,inset 0 1px 0 #ffffff68; transform:translateY(35px) scale(.78) rotate(-2deg); }
+.completion-overlay.show .completion-card { animation:completion-pop .52s cubic-bezier(.18,1.35,.35,1) both; }
+.completion-confetti { position:absolute; z-index:0; color:#fff18a; text-shadow:0 0 12px #ff975a; animation:confetti-drift 1.7s ease-in-out infinite alternate; }
+.confetti-a { top:37px; left:24px; font-size:24px; transform:rotate(-18deg); }
+.confetti-b { top:70px; right:25px; color:#ffab86; font-size:19px; animation-delay:.2s; }
+.completion-seal { position:relative; display:grid; place-items:center; width:57px; height:57px; margin:-4px auto 9px; border:3px solid #fff5be; border-radius:50%; color:#275040; background:radial-gradient(circle at 32% 25%,#f7ffbd,#95eda7 72%,#52bd9c); box-shadow:0 0 0 5px #8cf1ca35,0 4px 0 #276b68,0 7px 15px #06172c66; font-size:34px; font-weight:1000; animation:seal-arrive .4s .18s cubic-bezier(.1,1.4,.4,1) both; }
+.completion-kicker { position:relative; margin:0 0 4px; color:#ffe28a; font-size:9px; font-weight:1000; letter-spacing:.2em; }
+.completion-card h2 { position:relative; margin:0; color:#fff8da; font-family:ui-rounded,"Trebuchet MS",system-ui,sans-serif; font-size:clamp(27px,8vw,36px); line-height:1; letter-spacing:.015em; text-shadow:0 3px 0 #a7555c,0 5px 10px #07182c; }
+.completion-job { position:relative; margin:7px 0 2px; color:#d9f8ed; font-size:14px; font-weight:900; }
+.completion-stars { position:relative; margin:0 0 8px; color:#ffe477; font-size:26px; letter-spacing:6px; text-shadow:0 2px 0 #9d5d42,0 0 12px #ffcf62aa; }
+.completion-story { position:relative; min-height:30px; margin:0 auto 14px; max-width:285px; color:#d7e9e7; font-size:12px; line-height:1.35; }
+.completion-card .button { position:relative; width:100%; min-height:48px; border-radius:8px 17px 8px 17px; font-size:10px; }
+.completion-card .button span { margin-left:6px; font-size:16px; }
+.completion-timer { height:4px; margin:15px 2px 0; overflow:hidden; border-radius:4px; background:#ffffff25; }
+.completion-timer i { display:block; width:100%; height:100%; transform-origin:left; background:linear-gradient(90deg,#89ecc6,#fff18c,#ff9b70); }
+.completion-overlay.show .completion-timer i { animation:completion-countdown 3.2s linear forwards; }
 .tutorial-card { position:relative; width:min(100%,390px); padding:22px 20px 19px; border:2px solid #ffe079; box-shadow:0 0 30px #54ddc250,0 16px 40px #001a1f; }
 .tutorial-sticker { position:absolute; top:10px; right:16px; font-size:38px; transform:rotate(13deg); filter:drop-shadow(0 2px 5px #ed7a4f); }
 .eyebrow { margin:0 0 8px; color:#b2f3e3; font-size:10px; font-weight:1000; letter-spacing:.14em; }
@@ -127,6 +146,10 @@ h2 { margin:3px 0 0; color:#fff6d7; font-size:clamp(18px,5vw,22px); line-height:
 .toast.show { opacity:1; transform:translate(-50%,0); }
 .clear-burst { position:absolute; z-index:5; top:43%; left:50%; color:#fff8a4; font-size:24px; line-height:1; text-shadow:0 0 9px #ff874d,0 0 16px #fff3a0; pointer-events:none; }
 @keyframes power-pulse { to { transform:scale(1.045); box-shadow:0 0 0 3px #fff4a4,0 0 23px #ffce69,0 4px 0 #af4c76; } }
+@keyframes completion-pop { 60% { transform:translateY(-5px) scale(1.035) rotate(1deg); } 100% { transform:translateY(0) scale(1) rotate(0); } }
+@keyframes seal-arrive { from { opacity:0; transform:scale(.25) rotate(-45deg); } to { opacity:1; transform:scale(1) rotate(0); } }
+@keyframes confetti-drift { to { translate:0 -8px; rotate:14deg; opacity:.6; } }
+@keyframes completion-countdown { to { transform:scaleX(0); } }
 @media (max-height:700px) {
   .hero { flex-basis:clamp(88px,10dvh,98px); height:clamp(88px,10dvh,98px); min-height:88px; max-height:98px; margin-bottom:6px; }
   .mission { padding:7px 10px; margin-bottom:6px; }
