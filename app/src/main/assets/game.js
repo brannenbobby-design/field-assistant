@@ -62,7 +62,7 @@
           const art = document.createElement('span'); art.className = 'illustration'; art.style.backgroundPosition = spritePosition(item.chain);
           cell.appendChild(art);
         }
-        const name = document.createElement('span'); name.className = 'name'; name.textContent = item.power ? G.POWER[item.power].label : G.CHAINS[item.chain].names[stageIndex()];
+        const name = document.createElement('span'); name.className = 'sr-only'; name.textContent = item.power ? G.POWER[item.power].label : G.CHAINS[item.chain].names[stageIndex()];
         cell.appendChild(name); cell.setAttribute('aria-label', itemName(item) + (item.power ? ', power-up, tap to activate' : ''));
       } else {
         cell.classList.add('empty'); cell.setAttribute('aria-label', 'Empty board space');
@@ -109,8 +109,11 @@
     } else {
       G.jobStatus(state).forEach(need => {
         const badge = document.createElement('span'); badge.className = 'requirement' + (need.have >= need.amount ? ' ready' : '');
+        const label = G.CHAINS[need.chain].names[stageIndex()];
+        badge.setAttribute('aria-label', `${label}: ${need.have} of ${need.amount}`);
         const art = document.createElement('span'); art.className = 'req-art'; art.style.backgroundPosition = spritePosition(need.chain);
-        badge.append(art, document.createTextNode(`${G.CHAINS[need.chain].names[stageIndex()]} ${need.have}/${need.amount}`));
+        const count = document.createElement('span'); count.className = 'goal-count'; count.textContent = `${need.have}/${need.amount}`;
+        badge.append(art, count);
         $('requirements').appendChild(badge);
       });
     }
@@ -120,6 +123,8 @@
     $('board-count').textContent = `${G.SIZE} tiles`;
     $('restart-button').disabled = busy || state.job >= G.JOBS.length;
     const action = $('job-button');
+    action.hidden = !(state.won || state.failed || done);
+    $('action-buttons').classList.toggle('single-action', action.hidden);
     action.disabled = busy || !(state.won || state.failed || state.job >= G.JOBS.length);
     action.textContent = state.job >= G.JOBS.length ? 'PLAY AGAIN' : state.failed ? 'RETRY JOB' : state.won ? 'JOB COMPLETE · NEXT' : 'JOB IN PROGRESS';
     if (state.won) hintEl.textContent = 'Job cleared! Leftover moves boost your stars.';

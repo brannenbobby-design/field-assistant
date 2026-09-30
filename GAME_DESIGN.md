@@ -15,7 +15,7 @@ Each cleanup job sets two debris quotas and a move limit. Clear both quotas to f
 
 ## Visuals
 
-The play screen uses a wide, uncropped Gulf Coast scene above a compact level and coin HUD, leaving more room for the board. Bright sky, coral, aqua, and gold accents carry through the job card, board frame, and controls. The board uses an original transparent sprite sheet with 15 custom colorful 3D items: ordinary storm junk, strange upgrades, and full Florida nonsense. Swaps slide, matches pop with a sparkle burst, power-ups pulse, survivors animate into their new cells, and replacement pieces fall from above.
+The play screen centers the board rather than repeating tile labels. A compact Gulf Coast scene and level/coin HUD lead into icon-and-count job targets; the move counter sits beside the grid, and the inactive next-job button stays out of the way during play. Bright sky, coral, aqua, and gold accents tie the interface together. The board uses an original transparent sprite sheet with 15 custom colorful 3D items: ordinary storm junk, strange upgrades, and full Florida nonsense. Swaps slide, matches pop with a sparkle burst, power-ups pulse, survivors animate into their new cells, and replacement pieces fall from above.
 
 ## Jobs
 

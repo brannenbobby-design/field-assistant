@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#123b40" />
+  <meta name="theme-color" content="#17223e" />
   <title>Florida Man: Storm Cleanup</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="game-shell">
     <header class="hero">
-      <div class="topline"><span class="badge">GULF COAST • DAY 1</span><span class="coin">🪙 <b id="coins">0</b></span></div>
+      <div class="topline"><span class="badge">LEVEL 1 <i>•</i> GULF COAST</span><span class="coin"><span class="coin-mark">1</span><b id="coins">0</b></span></div>
       <div class="title-lockup">
         <p>FLORIDA MAN • GULF COAST</p>
         <h1>STORM CLEANUP</h1>
@@ -24,16 +24,16 @@
     </section>
 
     <section class="board-wrap">
-      <div class="board-heading"><div><b>STORM DEBRIS</b><span>Swap neighbors. Match 3 or more.</span></div><span class="board-count" id="board-count">30 tiles</span></div>
+      <div class="board-heading"><div><b>STORM DEBRIS</b><span>Match 3 or more to clear</span></div><div class="moves-badge"><span>MOVES</span><b id="moves">24</b></div><span class="board-count" id="board-count" aria-hidden="true">30 tiles</span></div>
       <div class="board" id="board" role="grid" aria-label="Storm debris match three board"></div>
       <div class="selection-hint" id="hint">Match 4 to earn a line blast. Match 5 for a rainbow gator.</div>
     </section>
 
     <footer class="actions">
-      <div class="stats"><span>MOVES LEFT <b id="moves">24</b></span><span>JUNK CLEARED <b id="score">0</b></span></div>
-      <div class="action-buttons">
+      <div class="stats"><span>DEBRIS CLEARED <b id="score">0</b></span><span class="combo-note">4+ MATCH · POWER-UP</span></div>
+      <div class="action-buttons single-action" id="action-buttons">
         <button class="button button-secondary" id="restart-button">RESTART JOB</button>
-        <button class="button button-main" id="job-button" disabled>JOB IN PROGRESS</button>
+        <button class="button button-main" id="job-button" disabled hidden>JOB COMPLETE · NEXT</button>
       </div>
     </footer>
   </main>
