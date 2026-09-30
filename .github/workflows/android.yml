@@ -1,0 +1,69 @@
+name: Build Florida Man Storm Cleanup Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/android.yml"
+      - ".github/keys/android-test.keystore"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/android.yml"
+      - ".github/keys/android-test.keystore"
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout game
+        uses: actions/checkout@v5
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Check gameplay rules
+        run: node tests/game.test.cjs
+      - name: Verify install identity and portrait lock
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          manifest = Path("app/src/main/AndroidManifest.xml").read_text()
+          gradle = Path("app/build.gradle.kts").read_text()
+          assert 'android:screenOrientation="portrait"' in manifest
+          assert 'applicationId = "com.brannenservices.floridamanunsupervised"' in gradle
+          assert 'versionCode = 13' in gradle and 'versionName = "1.0.1"' in gradle
+          assert Path("app/src/main/assets/storm_porch.webp").stat().st_size > 100_000
+          PY
+      - name: Build signed Android APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: android
+          ANDROID_KEY_ALIAS: android
+          ANDROID_KEY_PASSWORD: android
+        run: gradle --no-daemon :app:assembleRelease
+      - name: Rename APK
+        run: mkdir -p dist && cp app/build/outputs/apk/release/app-release.apk dist/FloridaManStormCleanup-v1.0.1.apk
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FloridaManStormCleanup-v1.0.1-Android
+          path: dist/FloridaManStormCleanup-v1.0.1.apk
+          if-no-files-found: error

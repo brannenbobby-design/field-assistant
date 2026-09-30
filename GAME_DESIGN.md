@@ -1,24 +1,25 @@
-# First Playable Design
+# Florida Man: Storm Cleanup — First playable
 
 ## Core loop
 
-1. Tap the salvage button to add a basic object to the 5×4 board.
-2. Drag matching objects together to merge them; drag an object to an empty cell to reposition it.
-3. Complete the current job card's requested items.
-4. Deliver the items to earn coins and reveal the repaired location and next job.
+Tap to salvage base junk, drag identical pieces of the same tier together to merge, and build the exact pieces requested on the active cleanup job. Deliver the requested items to free board slots, earn coins, and open the next job. Empty cells are not movement targets. A mismatched drop returns to the board unchanged. Scrapping a selected piece frees space for two coins.
 
-## First chapter
+## Merge chains
 
-- Fix the Porch: porch lumber + repaired chair.
-- Clear the Bait Shop: hurricane leaf cannon + bait cooler.
-- Build Gator Command: gator command center + storm-surfing sandals.
+| Chain | Early pieces | Increasingly bizarre upgrades |
+|---|---|---|
+| Porch lumber | Soggy plank → dry plank stack | Instant porch kit → trailer-palace plans |
+| Lawn chair | Busted chair → repaired chair | Gator recliner → lifeguard throne → mayor's chair |
+| Palm fronds | Loose frond → yard pile | Turbo broom → hurricane leaf cannon → storm steering wheel |
+| Cooler | Empty cooler → bait cooler | Rolling bait cooler → satellite bait cooler → gator command center |
+| Flip-flops | Lone flip-flop → matching pair | Gator-proof sandals → storm-surfing sandals → cloud-surfing flip-flops |
 
-Each chain has five tiers. The early tiers are normal storm salvage; later tiers get increasingly absurd. The first playable version has no energy timer or online service. Salvage is unlimited; the board creates the puzzle through limited space and item management.
+## First version jobs
 
-## Controls and presentation
+1. Fix the Porch: one dry plank stack and one repaired chair.
+2. Clear the Bait Shop: one turbo broom and one bait cooler.
+3. Build Gator Command: one gator command center and one gator-proof sandal pair.
 
-Portrait Android layout. Touch drag handles merging and moving. The item board occupies the center; the job card sits above it; salvage and cleanup controls sit below. The visual direction follows bright polished 3D casual-game art with coastal colors and an expressive Florida handyman.
+## Controls and platform
 
-## Build validation
-
-GitHub Actions runs Ren'Py lint, validates package/version/orientation and game content, then builds and uploads the Android APK. The prior stable test signing key is retained for install-over testing.
+Portrait touch layout. Drag and drop or tap one piece then tap its identical match. Only same-chain, same-tier pieces merge. Levels stop at tier 5. The first version saves the board locally on-device and works offline.

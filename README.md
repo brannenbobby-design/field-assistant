@@ -1,16 +1,17 @@
 # Florida Man: Storm Cleanup
 
-A portrait Android merge-and-restoration game built with Ren'Py 8.5.3. The player salvages storm debris, merges matching pieces into increasingly bizarre gear, and fulfills jobs to rebuild a Gulf Coast neighborhood.
+A portrait Android merge puzzle built as a small native Android shell around a local HTML5 game. The player taps to salvage storm debris, combines identical pieces into increasingly bizarre upgrades, and delivers exact items to rebuild a Gulf Coast neighborhood.
 
-## First playable scope
+## How to play
 
-- Three jobs: Fix the Porch, Clear the Bait Shop, and Build Gator Command.
-- Five merge chains with five tiers apiece, from ordinary storm junk to Florida-grade nonsense.
-- Drag pieces onto matching pieces to merge; drag to an empty cell to move.
-- Tap for salvage, clear unwanted pieces, then deliver requested items to complete each job.
-- Coins, merge count, save/load, pause, settings, and replay.
-- Portrait layout with generated 3D Gulf Coast scene art.
+- Tap **TAP FOR SALVAGE** to add storm debris to the board.
+- Drag an item onto an identical item at the same tier to merge them.
+- Mismatched items and empty slots reject drops; there are no free moves.
+- Scrap an unwanted item to free a slot, make the job card's requested pieces, and deliver the job.
+- Three jobs lead from repairing a porch to building a gator command center.
 
-## Android build
+## Build
 
-Pushes to `main` run Ren'Py lint and build a signed test APK. The package ID and development keystore are retained so the test build can install as an update over the prior test app. The development key is not for Play Store production signing.
+The Android app uses a WebView for local, offline HTML/CSS/JavaScript gameplay. Android Studio/Gradle builds the APK with `gradle :app:assembleRelease`. The GitHub Actions workflow runs gameplay checks and produces a signed test APK on pushes to `main`.
+
+Package ID `com.brannenservices.floridamanunsupervised` and the existing development signing key are retained so version 1.0.1 can update the already-installed 1.0.0 test app. The test key is for development installs, not Google Play publishing.

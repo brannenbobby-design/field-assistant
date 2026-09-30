@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#123b40" />
+  <title>Florida Man: Storm Cleanup</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="game-shell">
+    <header class="hero">
+      <div class="topline"><span class="badge">GULF COAST • DAY 1</span><span class="coin">🪙 <b id="coins">0</b></span></div>
+      <div class="title-lockup">
+        <p>THE STORM PASSED.</p>
+        <h1>FLORIDA MAN<br><em>STORM CLEANUP</em></h1>
+      </div>
+    </header>
+
+    <section class="mission panel">
+      <div class="mission-heading"><div><small id="job-kicker">CURRENT JOB · 1 OF 3</small><h2 id="job-title">Fix the Porch</h2></div><div class="stars" id="stars">★☆☆</div></div>
+      <p id="job-copy">The front steps are in the next county. Put the porch back together.</p>
+      <div id="requirements" class="requirements"></div>
+    </section>
+
+    <section class="board-wrap">
+      <div class="board-heading"><div><b>THE SALVAGE PILE</b><span>Merge identical junk to make stranger gear.</span></div><span class="board-count" id="board-count">0 / 16</span></div>
+      <div class="board" id="board" role="grid" aria-label="Salvage merge board"></div>
+      <div class="selection-hint" id="hint">Drag one piece onto its twin to merge.</div>
+    </section>
+
+    <footer class="actions">
+      <button class="button button-secondary" id="scrap-button" disabled>SCRAP SELECTED</button>
+      <button class="button button-main" id="salvage-button"><span>＋</span> TAP FOR SALVAGE</button>
+      <button class="button button-deliver" id="deliver-button">DELIVER JOB</button>
+    </footer>
+  </main>
+
+  <div class="modal-backdrop" id="tutorial" aria-modal="true" role="dialog">
+    <div class="tutorial-card panel">
+      <div class="tutorial-sticker">🌀</div>
+      <p class="eyebrow">YOUR FIRST CLEANUP JOB</p>
+      <h2>Make a bigger mess<br>into better gear.</h2>
+      <ol>
+        <li><b>Tap for salvage</b> to find storm junk.</li>
+        <li><b>Drag a piece onto an identical twin</b> to merge them.</li>
+        <li>Build the items on the job card, then <b>deliver the job</b>.</li>
+      </ol>
+      <p class="rule-note">Different pieces and empty spaces do nothing. No random moves.</p>
+      <button class="button button-main" id="start-button">LET'S CLEAN UP</button>
+    </div>
+  </div>
+  <div class="toast" id="toast" aria-live="polite"></div>
+  <script src="game.js"></script>
+</body>
+</html>
