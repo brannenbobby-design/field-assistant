@@ -12,6 +12,10 @@ assert.equal(state.board.length, G.SIZE);
 assert.ok(state.board.every(Boolean));
 assert.equal(G.scanMatches(state.board).indices.size, 0, 'fresh board has no free matches');
 assert.ok(G.rawPlayable(state.board), 'fresh board has at least one legal move');
+for (let seed = 1; seed <= 100; seed++) {
+  const fresh = G.newState(rngFrom(seed));
+  assert.equal(G.scanMatches(fresh.board).indices.size, 0, `seed ${seed} starts without line or square matches`);
+}
 
 // Invalid swaps restore the board and do not spend a move.
 let invalidFound = false;
@@ -29,6 +33,22 @@ for (let i = 0; i < G.SIZE && !invalidFound; i++) {
   }
 }
 assert.ok(invalidFound, 'generated board exposes at least one invalid swap to reject');
+
+// A solid 2x2 group is a legal match and clears all four pieces on the first wave.
+const squareState = G.newState(rngFrom(44));
+const chains = Object.keys(G.CHAINS);
+squareState.board = Array.from({ length: G.SIZE }, (_, i) => {
+  const { row, col } = G.coords(i);
+  return { chain: chains[(row + col) % chains.length], power: null };
+});
+for (const i of [6, 8, 11, 12]) squareState.board[i] = { chain: 'wood', power: null };
+squareState.board[13] = { chain: 'chair', power: null };
+assert.equal(G.scanMatches(squareState.board).indices.size, 0, 'square test board starts without a match');
+const squareResult = G.swap(squareState, 7, 8, rngFrom(991));
+assert.equal(squareResult.ok, true, 'swap that completes a 2x2 group is legal');
+const squareCells = new Set([6, 7, 11, 12]);
+assert.deepEqual(squareResult.animation.events[0].clear.filter(i => squareCells.has(i)).sort((a, b) => a - b), [6, 7, 11, 12], 'all four square tiles clear together');
+assert.ok(squareState.cleared.wood >= 4, 'square match advances debris goals for all four pieces');
 
 // Find and play a legal swap: it clears pieces, refills the board by gravity, and uses one move.
 let played = false;
@@ -82,4 +102,4 @@ const powerMoves = powerState.moves;
 assert.equal(G.activate(powerState, 0, rngFrom(45)).ok, true);
 assert.equal(powerState.moves, powerMoves - 1);
 assert.ok(powerState.board.every(Boolean));
-console.log('Match-three checks passed: playable start, rejected swaps, gravity/refill, power tiers, cleanup goals, and job progression.');
+console.log('Match-three checks passed: square groups, playable starts, rejected swaps, gravity/refill, power tiers, cleanup goals, and job progression.');

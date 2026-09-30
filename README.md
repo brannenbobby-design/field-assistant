@@ -1,6 +1,6 @@
 # Florida Man: Storm Cleanup
 
-A portrait Android match-three puzzle built around the board: icon-only debris pieces, visual job targets, a move counter beside the grid, and a compact Gulf Coast level scene. Swap neighboring storm debris to make matches, clear job targets, and watch the board animate as pieces slide, pop, fall, and refill.
+A portrait Android match-three puzzle built around the board: icon-only debris pieces, visual job targets, a move counter beside the grid, and a translucent play area over a full-screen Gulf Coast scene. Straight matches and solid 2×2 groups clear; four in a line still creates a blast power-up. New pieces slide and fall into each cascade.
 
 ## How to play
 
@@ -14,4 +14,4 @@ A portrait Android match-three puzzle built around the board: icon-only debris p
 
 The game runs offline as local HTML/CSS/JavaScript inside a native Android WebView. Build with `gradle :app:assembleRelease`. GitHub Actions runs gameplay checks and produces a signed APK on pushes to `main`.
 
-The package ID `com.brannenservices.floridamanunsupervised` and existing development signing key are retained, so version 1.0.5 can update the prior test APK. The test key is for development installs, not Google Play publishing.
+The package ID `com.brannenservices.floridamanunsupervised` and existing development signing key are retained, so version 1.0.6 can update the prior test APK. The test key is for development installs, not Google Play publishing.

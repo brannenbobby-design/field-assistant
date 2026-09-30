@@ -25,7 +25,7 @@
   function candidateChain(chains, rng) { return chains[Math.floor(rng() * chains.length)]; }
 
   function scanMatches(board) {
-    const lines = [];
+    const lines = [], squares = [];
     for (let r = 0; r < ROWS; r++) {
       let c = 0;
       while (c < COLS) {
@@ -48,7 +48,17 @@
     }
     const indices = new Set();
     lines.forEach(line => line.cells.forEach(i => indices.add(i)));
-    return { lines, indices };
+    // A solid 2x2 block is a valid four-piece match, even without a straight run.
+    // Larger solid blocks are covered by the union of their overlapping 2x2 squares.
+    for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS - 1; c++) {
+      const cells = [idx(r, c), idx(r, c + 1), idx(r + 1, c), idx(r + 1, c + 1)];
+      const first = board[cells[0]];
+      if (first && cells.slice(1).every(i => sameKind(first, board[i]))) {
+        squares.push({ direction: 'square', cells });
+        cells.forEach(i => indices.add(i));
+      }
+    }
+    return { lines, squares, indices };
   }
   function findPowerPlan(lines, preferred = -1) {
     const long = lines.filter(line => line.cells.length >= 5).sort((a, b) => b.cells.length - a.cells.length)[0];
@@ -86,7 +96,8 @@
         let choices = activeChains.filter(chain => {
           const horizontal = col >= 2 && board[idx(row, col - 1)]?.chain === chain && board[idx(row, col - 2)]?.chain === chain;
           const vertical = row >= 2 && board[idx(row - 1, col)]?.chain === chain && board[idx(row - 2, col)]?.chain === chain;
-          return !horizontal && !vertical;
+          const square = row >= 1 && col >= 1 && board[idx(row, col - 1)]?.chain === chain && board[idx(row - 1, col - 1)]?.chain === chain && board[idx(row - 1, col)]?.chain === chain;
+          return !horizontal && !vertical && !square;
         });
         if (!choices.length) choices = activeChains;
         board[i] = tile(candidateChain(choices, rng));

@@ -13,8 +13,8 @@
 html,body { margin:0; width:100%; height:100%; overflow:hidden; background:var(--deep); color:var(--ink); font-family:ui-rounded,"Trebuchet MS",system-ui,sans-serif; touch-action:manipulation; }
 body { min-height:100dvh; }
 button { font:inherit; }
-.game-shell { width:min(100%,540px); height:100dvh; min-height:620px; margin:0 auto; display:flex; flex-direction:column; padding:env(safe-area-inset-top) 13px env(safe-area-inset-bottom); overflow:hidden; background:radial-gradient(circle at 9px 9px,#d2f5ff0c 1px,transparent 1.5px) 0 0/22px 22px,radial-gradient(ellipse at 50% 40%,#367e9c 0%,#25466e 48%,#17223e 100%); }
-.hero { position:relative; flex:0 0 clamp(108px,13dvh,136px); height:clamp(108px,13dvh,136px); min-height:108px; max-height:136px; margin:0 -13px 8px; padding:9px 17px; background:linear-gradient(180deg,#10203b10 0%,#17223e00 38%,#101b35eF 100%),url('storm_banner_v2.webp') center top/cover; border-bottom:3px solid var(--gold); box-shadow:0 4px 14px #07152a88,inset 0 0 0 1px #fff3; }
+.game-shell { width:min(100%,540px); height:100dvh; min-height:620px; margin:0 auto; display:flex; flex-direction:column; padding:env(safe-area-inset-top) 13px env(safe-area-inset-bottom); overflow:hidden; background:radial-gradient(circle at 12px 12px,#d2f5ff12 1px,transparent 1.5px) 0 0/24px 24px,linear-gradient(180deg,#12234166 0%,#1725418c 45%,#0e1932b8 100%),url('storm_porch.webp') center 42%/cover; }
+.hero { position:relative; flex:0 0 clamp(92px,10dvh,108px); height:clamp(92px,10dvh,108px); min-height:92px; max-height:108px; margin:0 -13px 7px; padding:9px 17px; background:linear-gradient(180deg,#14274410 0%,#15274405 42%,#15274470 100%); border-bottom:1px solid #ffda8299; box-shadow:0 5px 16px #06172d44,inset 0 0 0 1px #fff2; }
 .topline { position:absolute; top:9px; left:17px; right:17px; display:flex; justify-content:space-between; align-items:center; }
 .badge { color:#273b4e; background:linear-gradient(135deg,#fff89b,#bbf58c); padding:6px 10px; border:1px solid #ffffcb; border-radius:10px 18px 18px 10px; font-size:9px; font-weight:1000; letter-spacing:.1em; box-shadow:0 3px 0 #609c6a,0 4px 12px #12284566; }
 .badge i { padding:0 2px; color:#ff8b68; font-style:normal; }
@@ -24,7 +24,7 @@ button { font:inherit; }
 .title-lockup p { margin:0 0 2px; color:#ffe07c; font-size:9px; font-weight:1000; letter-spacing:.18em; }
 h1 { margin:0; color:#fff9e8; font-size:clamp(19px,5.6vw,27px); line-height:.98; letter-spacing:.015em; font-weight:1000; }
 .panel { background:linear-gradient(145deg,#304e79f5,#243858f7); border:1px solid #a4e9eb88; border-radius:16px; box-shadow:0 4px 0 #152747,0 8px 16px #06152d77,inset 0 1px 0 #ffffff32; }
-.mission { position:relative; padding:8px 10px 8px 12px; flex:0 0 auto; margin-bottom:7px; overflow:hidden; border-radius:12px; background:linear-gradient(115deg,#263c5feF,#1e3152f2); border:1px solid #94dfe59c; box-shadow:0 3px 0 #142541,0 6px 12px #06152d70,inset 0 1px 0 #ffffff26; }
+.mission { position:relative; padding:8px 10px 8px 12px; flex:0 0 auto; margin-bottom:7px; overflow:hidden; border-radius:12px; background:linear-gradient(115deg,#1a355db8,#1b3155c4); border:1px solid #a6ecedbb; backdrop-filter:blur(8px) saturate(125%); box-shadow:0 3px 0 #13264199,0 6px 12px #06152d55,inset 0 1px 0 #ffffff38; }
 .mission::before { content:""; position:absolute; top:0; left:0; width:4px; height:100%; background:linear-gradient(#ffe66e,#ff936b 55%,#dd82ff); }
 .mission-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .mission-heading small { display:block; color:#a8f4e5; font-size:9px; letter-spacing:.12em; font-weight:1000; }
@@ -45,7 +45,7 @@ h2 { margin:3px 0 0; color:#fff6d7; font-size:clamp(18px,5vw,22px); line-height:
 .moves-badge { display:flex; align-items:center; gap:8px; padding:4px 6px 4px 10px; border:1px solid #fff0a3; border-radius:12px 20px 20px 12px; color:#fff5d4; background:linear-gradient(140deg,#e67b63,#bd4e78); box-shadow:0 3px 0 #873a62,0 5px 10px #071a3555,inset 0 1px 0 #fff6; }
 .moves-badge span { font-size:8px; font-weight:1000; letter-spacing:.12em; }
 .moves-badge b { display:grid; place-items:center; width:29px; height:29px; border:2px solid #fff2b4; border-radius:50%; color:#fffbe5; background:radial-gradient(circle at 35% 25%,#f89c6a,#dc536d 75%); font-size:15px; line-height:1; box-shadow:0 2px 0 #943c66; }
-.board { flex:1 1 auto; min-height:140px; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); grid-template-rows:repeat(6,minmax(0,1fr)); gap:6px; padding:9px; overflow:visible; border-radius:20px; border:3px solid #ffcf6a; background:linear-gradient(145deg,#52e3bc 0%,#1ebda9 36%,#1599a6 100%); box-shadow:inset 0 0 0 3px #faffcb8c,inset 0 8px 18px #f1fff14a,0 5px 0 #f17c68,0 10px 0 #b75c76,0 15px 23px #06152d99; }
+.board { flex:1 1 auto; min-height:140px; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); grid-template-rows:repeat(6,minmax(0,1fr)); gap:6px; padding:9px; overflow:visible; border-radius:20px; border:2px solid #ffe19a; background:linear-gradient(145deg,#60d7d27a 0%,#38b6bd83 48%,#2a738d9e 100%); backdrop-filter:blur(9px) saturate(130%); box-shadow:inset 0 0 0 2px #e5fff566,inset 0 8px 18px #f1fff12a,0 0 0 3px #1d446dbb,0 8px 20px #06152d99; }
 .cell { position:relative; display:flex; align-items:center; justify-content:center; min-width:0; min-height:0; overflow:visible; padding:2px; border:1px solid #b9fff4a8; border-radius:15px; color:#173f43; background:linear-gradient(150deg,#238b90aa,#176c84aa); box-shadow:inset 0 2px 6px #003b4655; user-select:none; -webkit-user-select:none; touch-action:none; cursor:pointer; }
 .cell.filled { border:2px solid #fff9df; background:radial-gradient(circle at 23% 9%,#ffffffef,transparent 38%),linear-gradient(150deg,#fffbe9,#ffe8a9 62%,#ffb980); box-shadow:0 3px 0 #e87e68,0 5px 9px #143a5270,inset 0 1px 0 #ffffff; }
 .cell.filled::before { content:""; position:absolute; inset:3px; border:1px solid #ffffffc2; border-radius:11px; pointer-events:none; }
@@ -86,7 +86,7 @@ h2 { margin:3px 0 0; color:#fff6d7; font-size:clamp(18px,5vw,22px); line-height:
 .clear-burst { position:absolute; z-index:5; top:43%; left:50%; color:#fff8a4; font-size:24px; line-height:1; text-shadow:0 0 9px #ff874d,0 0 16px #fff3a0; pointer-events:none; }
 @keyframes power-pulse { to { transform:scale(1.045); box-shadow:0 0 0 3px #fff4a4,0 0 23px #ffce69,0 4px 0 #af4c76; } }
 @media (max-height:700px) {
-  .hero { flex-basis:clamp(100px,13dvh,120px); height:clamp(100px,13dvh,120px); min-height:100px; max-height:120px; margin-bottom:6px; }
+  .hero { flex-basis:clamp(88px,10dvh,98px); height:clamp(88px,10dvh,98px); min-height:88px; max-height:98px; margin-bottom:6px; }
   .mission { padding:7px 10px; margin-bottom:6px; }
   #job-copy { margin:3px 0 4px; }
   .board { gap:4px; padding:6px; }

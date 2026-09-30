@@ -130,7 +130,7 @@
     if (state.won) hintEl.textContent = 'Job cleared! Leftover moves boost your stars.';
     else if (state.failed) hintEl.textContent = 'Out of moves. Restart the job and take another run.';
     else if (selected !== null && state.board[selected]) hintEl.textContent = state.board[selected].power ? 'Tap the power-up again or swap it to fire.' : 'Selected. Swap it with a neighbor to make a match.';
-    else hintEl.textContent = 'Four makes a blast. Five makes a rainbow gator.';
+    else hintEl.textContent = '2×2 squares clear too · 4 in a line earns a blast';
   }
   function render() { renderBoard(state.board); renderHud(); }
 
