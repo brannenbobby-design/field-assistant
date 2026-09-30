@@ -1,6 +1,23 @@
 const assert = require('node:assert/strict');
 const G = require('../app/src/main/assets/match3.js');
 
+assert.equal(G.JOBS.length, 9, 'campaign contains nine Florida stops');
+for (let i = 1; i < G.JOBS.length; i++) {
+  const prior = G.JOBS[i - 1], level = G.JOBS[i];
+  assert.ok(level.moves > prior.moves, `level ${i + 1} gives a little more board time`);
+  assert.ok(level.needs.reduce((sum, need) => sum + need.amount, 0) > prior.needs.reduce((sum, need) => sum + need.amount, 0), `level ${i + 1} has a slightly larger cleanup quota`);
+  level.needs.forEach(need => assert.ok(level.chains.includes(need.chain), `level ${i + 1} includes each requested debris type`));
+  const board = G.makeBoard(rngFrom(i * 9821), level.chains);
+  assert.equal(G.scanMatches(board).indices.size, 0, `level ${i + 1} starts without an automatic match`);
+  assert.ok(G.rawPlayable(board), `level ${i + 1} starts with a legal swap`);
+}
+for (let level = 0; level < G.JOBS.length; level++) {
+  const campaign = { ...G.newState(rngFrom(level + 300)), job: level, won: true };
+  assert.equal(G.nextJob(campaign, rngFrom(level + 400)), true, `level ${level + 1} advances`);
+  assert.equal(campaign.job, level + 1, `level ${level + 1} unlocks the next stop`);
+  if (level + 1 < G.JOBS.length) assert.equal(campaign.moves, G.JOBS[level + 1].moves);
+}
+
 function rngFrom(seed) {
   let x = seed >>> 0;
   return () => { x = (1664525 * x + 1013904223) >>> 0; return x / 4294967296; };
@@ -126,4 +143,4 @@ const powerMoves = powerState.moves;
 assert.equal(G.activate(powerState, 0, rngFrom(45)).ok, true);
 assert.equal(powerState.moves, powerMoves - 1);
 assert.ok(powerState.board.every(Boolean));
-console.log('Match-three checks passed: square groups, playable starts, rejected swaps, gravity/refill, power tiers, cleanup goals, and job progression.');
+console.log('Match-three checks passed: nine-level difficulty, playable starts, square matches, rejected swaps, gravity/refill, power tiers, cleanup goals, and progression.');

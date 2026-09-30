@@ -1,6 +1,6 @@
 # Florida Man: Storm Cleanup
 
-A portrait Android match-three puzzle built around the board: icon-only debris pieces, visual job targets, a move counter beside the grid, and a translucent play area over a full-screen Gulf Coast scene. Straight matches and complete 2×2 squares clear; four in a line still creates a blast power-up. New pieces slide and fall into each cascade. A story route takes Florida Man from Panama City Beach to Apalachicola and Tampa Bay.
+A portrait Android match-three puzzle built around the board: icon-only debris pieces, visual job targets, a move counter beside the grid, and a translucent play area over a full-screen Gulf Coast scene. Straight matches and complete 2×2 squares clear; four in a line still creates a blast power-up. New pieces slide and fall into each cascade. Nine Florida story levels run from Panama City Beach to Key West, with gradually larger cleanup quotas and move budgets. Optional sound effects can be switched on or off from either screen.
 
 ## How to play
 
@@ -16,4 +16,4 @@ The game runs offline as local HTML/CSS/JavaScript inside a native Android WebVi
 
 When a cleanup quota is met, a star-rated completion window appears after the last cascade and automatically returns to the route map; the next stop is ready there.
 
-The package ID `com.brannenservices.floridamanunsupervised` and existing development signing key are retained, so version 1.0.8 can update the prior test APK. The test key is for development installs, not Google Play publishing.
+The package ID `com.brannenservices.floridamanunsupervised` and existing development signing key are retained for install-over updates. The test key is for development installs, not Google Play publishing.

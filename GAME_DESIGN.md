@@ -17,13 +17,21 @@ Each cleanup job sets two debris quotas and a move limit. Clear both quotas to f
 
 The play screen layers a translucent board and mission HUD over a full-screen Gulf Coast porch scene. The compact level/coin HUD leads into icon-and-count job targets; the move counter sits beside the grid, and the inactive next-job button stays out of the way during play. Bright sky, coral, aqua, and gold accents tie the interface together. The board uses an original transparent sprite sheet with 15 custom colorful 3D items: ordinary storm junk, strange upgrades, and full Florida nonsense. Swaps slide, matches pop with a sparkle burst, power-ups pulse, survivors animate into their new cells, and replacement pieces fall from above.
 
+The nine-stop map runs from Panama City Beach through the Panhandle and peninsula to Key West. Each new level raises both its debris quota and move budget a little. Procedural Web Audio effects play for taps, swaps, clears, powers, and job wins; a saved sound toggle is available on both the map and board.
+
 ## Jobs
 
 The Florida map links the cleanup jobs into a small story route. The storm has passed, but a strange signal from a satellite cooler sends Florida Man along the Gulf Coast.
 
-1. **Panama City Beach — Fix the Porch:** clear 10 soggy planks and 10 busted lawn chairs in 24 moves. The neighborhood gator is already moving into the recliner.
-2. **Apalachicola — Clear the Bait Shop:** clear 12 palm-frond piles and 12 coolers in 26 moves. The team traces the radio signal before high tide.
-3. **Tampa Bay — Build Gator Command:** clear 14 satellite bait coolers and 14 storm-surfing sandals in 28 moves. Turn the salvage into an unnecessary command center before the next squall.
+1. **Panama City Beach — Fix the Porch:** clear 10 soggy planks and 10 busted lawn chairs in 24 moves.
+2. **Apalachicola — Clear the Bait Shop:** clear 12 palm-frond piles and 12 coolers in 26 moves.
+3. **Tallahassee — Find the Signal:** clear 14 satellite bait coolers and 14 lone flip-flops in 28 moves.
+4. **Gainesville — Round Up the Exhibits:** clear 16 gator recliners and 16 hurricane leaf cannons in 30 moves.
+5. **Jacksonville — Clear the Marina:** clear 18 storm-surfing sandals and 18 gator recliners in 32 moves.
+6. **Orlando — Unjam the Gator Park:** clear 20 satellite bait coolers and 20 instant porch kits in 34 moves.
+7. **Tampa Bay — Build Gator Command:** clear 22 gator command centers and 22 cloud-surfing flip-flops in 36 moves.
+8. **Everglades — Secure the Glades:** clear 24 storm steering wheels and 24 mayor's thrones in 38 moves.
+9. **Key West — Save the Keys:** clear 26 trailer-palace plans and 26 cloud-surfing flip-flops in 40 moves.
 
 Tile art/names escalate by job: porch junk becomes improbable construction equipment, chair debris becomes gator furniture, leaf piles become hurricane gadgets, coolers become command hardware, and flip-flops become storm gear.
 

@@ -5,14 +5,22 @@
   const $ = id => document.getElementById(id);
   const boardEl = $('board'), hintEl = $('hint'), toastEl = $('toast');
   const SAVE_KEY = 'storm-cleanup-match3-v3';
+  const SOUND_KEY = 'storm-cleanup-sound-v1';
   const tileTokens = new WeakMap();
   let nextToken = 1;
   let selected = null, gesture = null, suppressClick = false, toastTimer, completionTimer, busy = false;
+  let soundEnabled = localStorage.getItem(SOUND_KEY) !== 'off', audioContext = null;
 
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
       if (saved && Array.isArray(saved.board) && saved.board.length === G.SIZE && Number.isInteger(saved.job) && saved.job >= 0 && saved.job <= G.JOBS.length) {
+        // A completed three-job save from the previous campaign continues at new stop four.
+        if (saved.job === 3 && saved.campaignVersion !== 2) {
+          saved.board = G.makeBoard(Math.random, G.JOBS[3].chains); saved.moves = G.JOBS[3].moves;
+          saved.cleared = {}; saved.won = false; saved.failed = false;
+        }
+        saved.campaignVersion = 2;
         saved.board = saved.board.map(item => item && G.CHAINS[item.chain] && (!item.power || G.POWER[item.power]) ? { chain: item.chain, power: item.power || null } : null);
         saved.cleared ||= {}; saved.score ||= 0; saved.coins ||= 0;
         if (saved.job < G.JOBS.length) { saved.moves = Math.max(0, saved.moves || 0); saved.failed = saved.moves === 0 && !saved.won; }
@@ -26,22 +34,73 @@
     if (!tileTokens.has(item)) tileTokens.set(item, String(nextToken++));
     return tileTokens.get(item);
   }
-  function save() { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+  function save() { state.campaignVersion = 2; localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
   function say(message) {
     toastEl.textContent = message; toastEl.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
   }
+  function updateSoundButtons() {
+    [ $('sound-toggle'), $('map-sound-toggle') ].forEach(button => {
+      button.textContent = soundEnabled ? '♫ ON' : '♫ OFF';
+      button.setAttribute('aria-label', soundEnabled ? 'Turn sound off' : 'Turn sound on');
+      button.classList.toggle('sound-off', !soundEnabled);
+    });
+  }
+  function playTone(frequency, duration, offset = 0, type = 'sine', volume = .055, endFrequency = frequency) {
+    if (!soundEnabled) return;
+    try {
+      const Audio = root.AudioContext || root.webkitAudioContext;
+      if (!Audio) return;
+      audioContext ||= new Audio();
+      if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+      const start = audioContext.currentTime + offset, oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
+      oscillator.type = type; oscillator.frequency.setValueAtTime(frequency, start);
+      if (endFrequency !== frequency) oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFrequency), start + duration);
+      gain.gain.setValueAtTime(.0001, start); gain.gain.exponentialRampToValueAtTime(volume, start + .012);
+      gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+      oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start(start); oscillator.stop(start + duration + .01);
+    } catch (_) { /* Audio is an optional enhancement; gameplay stays available. */ }
+  }
+  function playSound(effect, amount = 1, wave = 0) {
+    if (!soundEnabled) return;
+    if (effect === 'tap') playTone(560, .055, 0, 'sine', .035, 720);
+    else if (effect === 'swap') playTone(290, .075, 0, 'triangle', .04, 430);
+    else if (effect === 'invalid') playTone(190, .12, 0, 'square', .025, 95);
+    else if (effect === 'clear') {
+      const lift = Math.min(180, amount * 9 + wave * 45);
+      [0, 1, 2].forEach((n) => playTone(500 + lift + n * 125, .12, n * .045, 'sine', .045));
+    } else if (effect === 'power') {
+      playTone(220, .34, 0, 'sawtooth', .035, 760); playTone(440, .3, .04, 'triangle', .04, 880);
+    } else if (effect === 'win') {
+      [523, 659, 784, 1047].forEach((note, i) => playTone(note, .25, i * .13, 'triangle', .05));
+    }
+  }
+  function toggleSound() {
+    soundEnabled = !soundEnabled; localStorage.setItem(SOUND_KEY, soundEnabled ? 'on' : 'off'); updateSoundButtons();
+    if (soundEnabled) playSound('tap');
+  }
   function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-  function stageIndex() { return Math.min(state.job, G.JOBS.length - 1); }
+  function stageIndex() { return Math.min(Math.floor(state.job / 3), 2); }
   function itemName(item) { return item.power ? G.POWER[item.power].label : G.CHAINS[item.chain].names[stageIndex()]; }
   function itemIcon(item) { return item.power ? G.POWER[item.power].icon : G.CHAINS[item.chain].icons[stageIndex()]; }
   function spritePosition(chain) { return `${Object.keys(G.CHAINS).indexOf(chain) * 25}% ${stageIndex() * 50}%`; }
   function tallyPower() { return state.board.filter(x => x?.power).length; }
+  const routePoints = [[122, 155], [159, 195], [230, 157], [205, 222], [270, 160], [234, 290], [190, 315], [215, 390], [151, 458]];
+  function positionRouteNodes() {
+    const frame = document.querySelector('.florida-map').getBoundingClientRect();
+    if (!frame.width || !frame.height) return;
+    const scale = Math.min(frame.width / 360, frame.height / 500);
+    const offsetX = (frame.width - 360 * scale) / 2, offsetY = (frame.height - 500 * scale) / 2;
+    routePoints.forEach(([x, y], i) => {
+      const node = $(`node-${i}`);
+      node.style.left = `${(offsetX + x * scale) / frame.width * 100}%`;
+      node.style.top = `${(offsetY + y * scale) / frame.height * 100}%`;
+    });
+  }
 
   function renderMap() {
     const done = state.job >= G.JOBS.length || (state.won && state.job === G.JOBS.length - 1);
-    const current = Math.min(state.job, G.JOBS.length - 1);
-    const next = state.won && !done ? Math.min(state.job + 1, G.JOBS.length - 1) : current;
+    const next = state.won && !done ? Math.min(state.job + 1, G.JOBS.length - 1) : Math.min(state.job, G.JOBS.length - 1);
     const job = G.JOBS[next];
     $('map-coins').textContent = String(state.coins);
     $('map-story').textContent = done ? 'The coast is clear, the radio is quiet, and the gator has somehow been promoted.' : job.story;
@@ -50,23 +109,25 @@
     $('map-stars').textContent = done ? '★★★' : state.won && next === state.job ? '★★★' : '☆☆☆';
     $('map-job-title').textContent = done ? 'FLORIDA THANKS YOU · THE END (FOR NOW)' : `${state.won ? 'NEXT STOP' : `JOB ${next + 1}`} · ${job.title.toUpperCase()}`;
     $('map-play').innerHTML = done ? 'RIDE THE ROUTE AGAIN <span>↻</span>' : state.won ? `DRIVE TO ${job.location.toUpperCase()} <span>→</span>` : `HEAD TO ${job.title.toUpperCase()} <span>→</span>`;
-    $('node-0').className = `map-node node-one ${0 < state.job || (state.won && state.job === 0) ? 'complete' : state.job === 0 && !state.won ? 'current' : 'locked'}`;
-    $('node-1').className = `map-node node-two ${1 < state.job || (state.won && state.job === 1) ? 'complete' : state.job === 1 && !state.won ? 'current' : state.won && state.job === 0 ? 'unlocked' : 'locked'}`;
-    $('node-2').className = `map-node node-three ${2 < state.job || (state.won && state.job === 2) ? 'complete' : state.job === 2 && !state.won ? 'current' : state.won && state.job === 1 ? 'unlocked' : 'locked'}`;
-    [0, 1, 2].forEach(i => {
+    G.JOBS.forEach((level, i) => {
       const node = $(`node-${i}`), available = i === state.job && !state.won || state.won && i === state.job + 1;
+      const completed = i < state.job || (state.won && i === state.job);
+      node.className = `map-node route-node route-node-${i + 1} ${completed ? 'complete' : available ? (i === state.job ? 'current' : 'unlocked') : 'locked'}`;
       node.disabled = !available;
-      node.querySelector('.node-medal').textContent = i < state.job || (state.won && i === state.job) ? '✓' : String(i + 1);
+      node.querySelector('.node-medal').textContent = completed ? '✓' : String(i + 1);
+      node.setAttribute('aria-label', `${level.location}, level ${i + 1}${completed ? ', complete' : available ? ', available' : ', locked'}`);
       node.setAttribute('aria-current', i === next ? 'step' : 'false');
     });
+    positionRouteNodes();
   }
   function showMap() {
     clearTimeout(completionTimer); completionTimer = null;
     $('job-complete').classList.add('hidden'); $('job-complete').classList.remove('show');
-    renderMap(); $('game-screen').classList.add('hidden'); $('map-screen').classList.remove('hidden');
+    $('game-screen').classList.add('hidden'); $('map-screen').classList.remove('hidden'); renderMap();
   }
   function presentCompletion() {
     if (!state.won || state.job >= G.JOBS.length) return;
+    playSound('win');
     const job = G.JOBS[state.job], stars = state.moves >= Math.ceil(job.moves * .5) ? 3 : state.moves >= 3 ? 2 : 1;
     $('completion-kicker').textContent = `STOP ${state.job + 1} CLEARED`;
     $('completion-job').textContent = job.title;
@@ -187,8 +248,10 @@
   async function animateTurn(result, oldBoard) {
     busy = true; selected = null; renderHud();
     const sequence = result.animation;
+    if (result.power) playSound('power');
     await renderBoard(sequence.midBoard, oldBoard);
     for (const wave of sequence.events) {
+      if (wave.clear.length) playSound('clear', wave.clear.length, wave.wave);
       const clearAnims = [];
       for (const i of wave.clear) {
         const cell = boardEl.querySelector(`.cell[data-index="${i}"]`);
@@ -224,7 +287,7 @@
       } else say(result.reason);
       return;
     }
-    if (selected === null || selected === index) { selected = selected === index ? null : index; render(); return; }
+    if (selected === null || selected === index) { selected = selected === index ? null : index; if (selected !== null) playSound('tap'); render(); return; }
     if (G.adjacent(selected, index)) trySwap(selected, index);
     else { selected = index; render(); say('Swap neighboring pieces only.'); }
   }
@@ -240,11 +303,12 @@
     if (busy) return;
     const oldBoard = state.board.slice(), before = tallyPower();
     const result = G.swap(state, from, to);
-    if (!result.ok) { selected = null; render(); shake(from, to); say(result.reason); return; }
+    if (!result.ok) { playSound('invalid'); selected = null; render(); shake(from, to); say(result.reason); return; }
+    playSound('swap');
     const powerEarned = tallyPower() > before;
     animateTurn(result, oldBoard).then(() => {
       if (state.won) return;
-      if (powerEarned) say('Power-up earned! Tap it or swap it to fire.');
+      if (powerEarned) { playSound('power'); say('Power-up earned! Tap it or swap it to fire.'); }
       else if (result.matched >= 5) say('Big match! Watch that cascade.');
       else say(result.power ? 'Power-up fired!' : 'Nice match! More junk is dropping in.');
     });
@@ -270,29 +334,34 @@
     else tapCell(start.index);
   });
   document.addEventListener('pointercancel', () => { gesture = null; });
-  $('restart-button').addEventListener('click', () => { if (busy) return; G.restartJob(state); selected = null; save(); render(); say('Job reset. Fresh board, same Florida.'); });
+  $('restart-button').addEventListener('click', () => { if (busy) return; playSound('tap'); G.restartJob(state); selected = null; save(); render(); say('Job reset. Fresh board, same Florida.'); });
   $('job-button').addEventListener('click', () => {
     if (busy) return;
     if (state.failed) { G.restartJob(state); selected = null; save(); render(); say('Take two.'); return; }
     if (state.job >= G.JOBS.length) { state = G.newState(); selected = null; save(); render(); $('tutorial').classList.remove('hidden'); return; }
     if (state.won) { showMap(); }
   });
-  $('start-button').addEventListener('click', () => { $('tutorial').classList.add('hidden'); localStorage.setItem('storm-cleanup-match3-tutorial-v3', 'seen'); });
-  $('completion-continue').addEventListener('click', showMap);
-  $('map-button').addEventListener('click', () => { if (!busy) showMap(); });
+  $('start-button').addEventListener('click', () => { playSound('tap'); $('tutorial').classList.add('hidden'); localStorage.setItem('storm-cleanup-match3-tutorial-v3', 'seen'); });
+  $('completion-continue').addEventListener('click', () => { playSound('tap'); showMap(); });
+  $('map-button').addEventListener('click', () => { if (!busy) { playSound('tap'); showMap(); } });
+  $('sound-toggle').addEventListener('click', toggleSound);
+  $('map-sound-toggle').addEventListener('click', toggleSound);
   $('map-play').addEventListener('click', () => {
     if (busy) return;
+    playSound('tap');
     if (state.won && state.job === G.JOBS.length - 1) { G.nextJob(state); save(); showMap(); return; }
     if (state.job >= G.JOBS.length) { state = G.newState(); selected = null; }
     else if (state.won) G.nextJob(state);
     selected = null; save(); render(); showGame();
   });
-  [0, 1, 2].forEach(i => $(`node-${i}`).addEventListener('click', () => {
+  G.JOBS.forEach((job, i) => $(`node-${i}`).addEventListener('click', () => {
     if ($(`node-${i}`).disabled) return;
     if (state.won && i === state.job + 1) $('map-play').click();
-    else showGame();
+    else { playSound('tap'); showGame(); }
   }));
   $('tutorial').classList.add('hidden');
+  updateSoundButtons();
   render();
   renderMap();
+  root.addEventListener('resize', positionRouteNodes);
 })(typeof window === 'undefined' ? globalThis : window);

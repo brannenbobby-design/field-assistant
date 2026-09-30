@@ -9,23 +9,29 @@
 </head>
 <body>
   <main class="map-screen" id="map-screen">
-    <header class="map-topline"><span class="map-logo">FIELD NOTES <i>•</i> FLORIDA</span><span class="coin"><span class="coin-mark">1</span><b id="map-coins">0</b></span></header>
+    <header class="map-topline"><span class="map-logo">FIELD NOTES <i>•</i> FLORIDA</span><button class="sound-toggle" id="map-sound-toggle" type="button" aria-label="Turn sound off">♫ ON</button><span class="coin"><span class="coin-mark">1</span><b id="map-coins">0</b></span></header>
     <section class="map-intro"><p class="eyebrow">THE STORM PASSED. THE TROUBLE DIDN'T.</p><h1>One long Florida cleanup</h1><p id="map-story">Start on the Gulf Coast. The first call is already waiting.</p></section>
     <section class="route-card" aria-label="Florida cleanup route">
-      <div class="route-heading"><span>THE GULF COAST ROUTE</span><span id="route-progress">STOP 1 OF 3</span></div>
+      <div class="route-heading"><span>THE FLORIDA ROUTE</span><span id="route-progress">STOP 1 OF 9</span></div>
       <div class="florida-map">
         <svg viewBox="0 0 360 500" role="img" aria-label="Illustrated Florida map showing the cleanup route">
           <defs><linearGradient id="land" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b8d68d"/><stop offset="1" stop-color="#658f69"/></linearGradient></defs>
           <path class="map-land-shadow" d="M38 125 143 125 165 108 209 96 272 104 291 133 269 165 252 203 264 255 275 300 260 344 244 384 230 421 212 458 194 444 191 397 174 354 160 309 143 268 118 229 85 196 41 173Z"/>
           <path class="map-land" d="M38 125 143 125 165 108 209 96 272 104 291 133 269 165 252 203 264 255 275 300 260 344 244 384 230 421 212 458 194 444 191 397 174 354 160 309 143 268 118 229 85 196 41 173Z"/>
-          <path class="map-road" d="M124 153 C142 166 147 185 168 201 S177 266 191 315"/>
+          <path class="map-road" d="M122 155 C145 165 147 184 159 195 S212 177 230 157 S208 196 205 222 S252 205 270 160 S238 245 234 290 S203 297 190 315 S209 365 215 390 S178 440 151 458"/>
           <path class="map-waterway" d="M77 149 Q129 135 173 146 M202 128 Q251 136 270 155 M203 337 Q228 347 244 367"/>
           <text x="212" y="235" class="map-label">FLORIDA</text><text x="58" y="110" class="map-water-label">GULF OF MEXICO</text>
-          <circle cx="122" cy="155" r="4" class="map-town"/><circle cx="159" cy="195" r="4" class="map-town"/><circle cx="190" cy="315" r="4" class="map-town"/>
+          <circle cx="122" cy="155" r="4" class="map-town"/><circle cx="159" cy="195" r="4" class="map-town"/><circle cx="230" cy="157" r="4" class="map-town"/><circle cx="205" cy="222" r="4" class="map-town"/><circle cx="270" cy="160" r="4" class="map-town"/><circle cx="234" cy="290" r="4" class="map-town"/><circle cx="190" cy="315" r="4" class="map-town"/><circle cx="215" cy="390" r="4" class="map-town"/><circle cx="151" cy="458" r="4" class="map-town"/>
         </svg>
-        <button class="map-node node-one" id="node-0" aria-label="Panama City Beach, stop 1"><span class="node-medal">1</span><span class="node-name">Panama City<br><b>BEACH</b></span></button>
-        <button class="map-node node-two" id="node-1" aria-label="Apalachicola, stop 2"><span class="node-medal">2</span><span class="node-name">Apalachicola</span></button>
-        <button class="map-node node-three" id="node-2" aria-label="Tampa Bay, stop 3"><span class="node-medal">3</span><span class="node-name">Tampa Bay</span></button>
+        <button class="map-node route-node route-node-1" id="node-0" aria-label="Panama City Beach, level 1"><span class="node-medal">1</span></button>
+        <button class="map-node route-node route-node-2" id="node-1" aria-label="Apalachicola, level 2"><span class="node-medal">2</span></button>
+        <button class="map-node route-node route-node-3" id="node-2" aria-label="Tallahassee, level 3"><span class="node-medal">3</span></button>
+        <button class="map-node route-node route-node-4" id="node-3" aria-label="Gainesville, level 4"><span class="node-medal">4</span></button>
+        <button class="map-node route-node route-node-5" id="node-4" aria-label="Jacksonville, level 5"><span class="node-medal">5</span></button>
+        <button class="map-node route-node route-node-6" id="node-5" aria-label="Orlando, level 6"><span class="node-medal">6</span></button>
+        <button class="map-node route-node route-node-7" id="node-6" aria-label="Tampa Bay, level 7"><span class="node-medal">7</span></button>
+        <button class="map-node route-node route-node-8" id="node-7" aria-label="Everglades, level 8"><span class="node-medal">8</span></button>
+        <button class="map-node route-node route-node-9" id="node-8" aria-label="Key West, level 9"><span class="node-medal">9</span></button>
       </div>
       <div class="route-caption"><span class="route-pin">🐊</span><span id="map-location">PANAMA CITY BEACH · GULF COAST</span><span class="route-stars" id="map-stars">☆☆☆</span></div>
     </section>
@@ -34,7 +40,7 @@
 
   <main class="game-shell hidden" id="game-screen">
     <header class="hero">
-      <div class="topline"><span class="badge" id="level-badge">LEVEL 1 <i>•</i> GULF COAST</span><span class="coin"><span class="coin-mark">1</span><b id="coins">0</b></span></div>
+      <div class="topline"><span class="badge" id="level-badge">LEVEL 1 · GULF COAST</span><span class="hud-right"><button class="sound-toggle" id="sound-toggle" type="button" aria-label="Turn sound off">♫ ON</button><span class="coin"><span class="coin-mark">1</span><b id="coins">0</b></span></span></div>
       <div class="title-lockup">
         <p id="story-banner">FLORIDA MAN • GULF COAST</p>
         <h1>STORM CLEANUP</h1>
@@ -43,7 +49,7 @@
     </header>
 
     <section class="mission panel">
-      <div class="mission-heading"><div><small id="job-kicker">CURRENT JOB · 1 OF 3</small><h2 id="job-title">Fix the Porch</h2></div><div class="stars" id="stars">★☆☆</div></div>
+      <div class="mission-heading"><div><small id="job-kicker">CURRENT JOB · 1 OF 9</small><h2 id="job-title">Fix the Porch</h2></div><div class="stars" id="stars">★☆☆</div></div>
       <p id="job-copy">Clear the storm junk blocking the porch.</p>
       <div id="requirements" class="requirements"></div>
     </section>
@@ -75,7 +81,7 @@
         <li><b>Match 4</b> for a line blast or <b>5</b> for a rainbow gator power-up.</li>
         <li>Clear the job's requested debris before your moves run out.</li>
       </ol>
-      <p class="rule-note">No free shuffling. Every swap has to make a match.</p>
+      <p class="rule-note">No free shuffling. Every swap has to make a match. Tap ♫ ON to mute sound effects.</p>
       <button class="button button-main" id="start-button">LET'S CLEAN UP</button>
     </div>
   </div>
