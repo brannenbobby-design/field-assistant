@@ -45,13 +45,14 @@ button { font:inherit; }
 .route-node-8 { left:60%; top:79%; }
 .route-node-9 { left:42%; top:92%; }
 .node-medal { display:grid; place-items:center; width:29px; height:29px; border:2px solid #ffedb1; border-radius:50%; color:#714322; background:radial-gradient(circle at 35% 25%,#fff39d,#f9a94f 78%); box-shadow:0 0 0 3px #f9d78344,0 3px 7px #092238aa; font-size:12px; font-weight:1000; }
+.node-rating { position:absolute; top:calc(100% + 1px); left:50%; transform:translateX(-50%); color:#ffdf87; font-size:8px; line-height:1; white-space:nowrap; letter-spacing:0; text-shadow:0 1px 4px #092238; }
 .map-node.current .node-medal,.map-node.unlocked .node-medal { animation:route-pulse 1.4s ease-in-out infinite alternate; }
 .map-node.complete .node-medal { color:#15483e; background:radial-gradient(circle at 35% 25%,#ebffbd,#78d8a0 78%); }
 .map-node.locked { opacity:.62; cursor:default; }
 .map-node.locked .node-medal { color:#dce7df; border-color:#d7e7d484; background:linear-gradient(145deg,#617b7c,#344c61); box-shadow:0 3px 7px #092238aa; }
 .route-caption { flex:none; display:flex; align-items:center; gap:7px; min-height:31px; border-top:1px solid #e4e9ca32; color:#e9f5df; font-size:8px; font-weight:1000; letter-spacing:.1em; }
 .route-pin { font-size:16px; }
-.route-stars { margin-left:auto; color:#ffdf87; font-size:13px; letter-spacing:2px; }
+.route-stars { margin-left:auto; flex:none; color:#ffdf87; font-size:10px; letter-spacing:0; }
 .map-footer { flex:none; padding:0 2px; }
 .map-footer p { margin:0 0 6px; color:#f8dfa3; font-family:Georgia,serif; font-size:13px; font-weight:bold; letter-spacing:.04em; text-shadow:0 2px 5px #071a2c; }
 .map-footer .button { width:100%; min-height:49px; border-radius:7px 18px 7px 18px; font-size:12px; }

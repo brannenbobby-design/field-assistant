@@ -11,6 +11,10 @@
   let selected = null, gesture = null, suppressClick = false, toastTimer, completionTimer, busy = false;
   let soundEnabled = localStorage.getItem(SOUND_KEY) !== 'off', audioContext = null;
 
+  function awardedStars(job, moves) {
+    return moves >= Math.ceil(job.moves * .5) ? 3 : moves >= 3 ? 2 : 1;
+  }
+
   function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
@@ -23,6 +27,10 @@
         saved.campaignVersion = 2;
         saved.board = saved.board.map(item => item && G.CHAINS[item.chain] && (!item.power || G.POWER[item.power]) ? { chain: item.chain, power: item.power || null } : null);
         saved.cleared ||= {}; saved.score ||= 0; saved.coins ||= 0;
+        saved.levelStars = Object.fromEntries(Object.entries(saved.levelStars || {}).filter(([level, stars]) => Number.isInteger(Number(level)) && Number(level) >= 0 && Number(level) < G.JOBS.length && Number.isInteger(stars) && stars >= 1 && stars <= 3));
+        // Preserve a rating if an older build saved the win before ratings existed.
+        if (saved.won && saved.job < G.JOBS.length) saved.levelStars[saved.job] = Math.max(saved.levelStars[saved.job] || 0, awardedStars(G.JOBS[saved.job], saved.moves));
+        if (saved.job === G.JOBS.length) saved.levelStars[G.JOBS.length - 1] = Math.max(saved.levelStars[G.JOBS.length - 1] || 0, awardedStars(G.JOBS[G.JOBS.length - 1], saved.moves));
         if (saved.job < G.JOBS.length) { saved.moves = Math.max(0, saved.moves || 0); saved.failed = saved.moves === 0 && !saved.won; }
         return saved;
       }
@@ -106,7 +114,8 @@
     $('map-story').textContent = done ? 'The coast is clear, the radio is quiet, and the gator has somehow been promoted.' : job.story;
     $('route-progress').textContent = done ? 'ROUTE COMPLETE' : `STOP ${next + 1} OF ${G.JOBS.length}`;
     $('map-location').textContent = done ? 'GULF COAST · CLEANUP COMPLETE' : `${job.location} · ${job.region}`;
-    $('map-stars').textContent = done ? '★★★' : state.won && next === state.job ? '★★★' : '☆☆☆';
+    const starTotal = Object.values(state.levelStars || {}).reduce((sum, stars) => sum + stars, 0);
+    $('map-stars').textContent = `${starTotal}/27 ★`;
     $('map-job-title').textContent = done ? 'FLORIDA THANKS YOU · THE END (FOR NOW)' : `${state.won ? 'NEXT STOP' : `JOB ${next + 1}`} · ${job.title.toUpperCase()}`;
     $('map-play').innerHTML = done ? 'RIDE THE ROUTE AGAIN <span>↻</span>' : state.won ? `DRIVE TO ${job.location.toUpperCase()} <span>→</span>` : `HEAD TO ${job.title.toUpperCase()} <span>→</span>`;
     G.JOBS.forEach((level, i) => {
@@ -115,7 +124,9 @@
       node.className = `map-node route-node route-node-${i + 1} ${completed ? 'complete' : available ? (i === state.job ? 'current' : 'unlocked') : 'locked'}`;
       node.disabled = !available;
       node.querySelector('.node-medal').textContent = completed ? '✓' : String(i + 1);
-      node.setAttribute('aria-label', `${level.location}, level ${i + 1}${completed ? ', complete' : available ? ', available' : ', locked'}`);
+      const rating = Number(state.levelStars?.[i] || 0);
+      node.querySelector('.node-rating').textContent = rating ? '★'.repeat(rating) + '☆'.repeat(3 - rating) : '';
+      node.setAttribute('aria-label', `${level.location}, level ${i + 1}${completed ? ', complete' : available ? ', available' : ', locked'}${rating ? `, ${rating} of 3 stars` : ''}`);
       node.setAttribute('aria-current', i === next ? 'step' : 'false');
     });
     positionRouteNodes();
@@ -128,7 +139,10 @@
   function presentCompletion() {
     if (!state.won || state.job >= G.JOBS.length) return;
     playSound('win');
-    const job = G.JOBS[state.job], stars = state.moves >= Math.ceil(job.moves * .5) ? 3 : state.moves >= 3 ? 2 : 1;
+    const job = G.JOBS[state.job], stars = awardedStars(job, state.moves);
+    state.levelStars ||= {};
+    state.levelStars[state.job] = Math.max(Number(state.levelStars[state.job]) || 0, stars);
+    save();
     $('completion-kicker').textContent = `STOP ${state.job + 1} CLEARED`;
     $('completion-job').textContent = job.title;
     $('completion-stars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
@@ -212,7 +226,7 @@
     $('job-copy').textContent = done ? 'You saved the block, the bait shop, and the neighborhood gator.' : `${job.location} · ${job.copy}`;
     $('level-badge').textContent = done ? 'FLORIDA ROUTE COMPLETE' : `LEVEL ${state.job + 1} · ${job.region}`;
     $('story-banner').textContent = done ? 'FLORIDA MAN · LEGEND OF THE GULF' : `FLORIDA MAN · ${job.location.toUpperCase()}`;
-    const earned = state.won ? (state.moves >= Math.ceil(job.moves * .5) ? 3 : state.moves >= 3 ? 2 : 1) : Math.min(state.job, 3);
+    const earned = state.won ? awardedStars(job, state.moves) : Math.min(state.levelStars?.[state.job] || 0, 3);
     $('stars').textContent = '★'.repeat(earned) + '☆'.repeat(3 - earned);
     $('requirements').replaceChildren();
     if (done) {
@@ -338,7 +352,7 @@
   $('job-button').addEventListener('click', () => {
     if (busy) return;
     if (state.failed) { G.restartJob(state); selected = null; save(); render(); say('Take two.'); return; }
-    if (state.job >= G.JOBS.length) { state = G.newState(); selected = null; save(); render(); $('tutorial').classList.remove('hidden'); return; }
+    if (state.job >= G.JOBS.length) { const levelStars = state.levelStars || {}; state = G.newState(); state.levelStars = levelStars; selected = null; save(); render(); $('tutorial').classList.remove('hidden'); return; }
     if (state.won) { showMap(); }
   });
   $('start-button').addEventListener('click', () => { playSound('tap'); $('tutorial').classList.add('hidden'); localStorage.setItem('storm-cleanup-match3-tutorial-v3', 'seen'); });
@@ -350,7 +364,7 @@
     if (busy) return;
     playSound('tap');
     if (state.won && state.job === G.JOBS.length - 1) { G.nextJob(state); save(); showMap(); return; }
-    if (state.job >= G.JOBS.length) { state = G.newState(); selected = null; }
+    if (state.job >= G.JOBS.length) { const levelStars = state.levelStars || {}; state = G.newState(); state.levelStars = levelStars; selected = null; }
     else if (state.won) G.nextJob(state);
     selected = null; save(); render(); showGame();
   });
