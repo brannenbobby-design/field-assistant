@@ -19,20 +19,22 @@
 
     <section class="mission panel">
       <div class="mission-heading"><div><small id="job-kicker">CURRENT JOB · 1 OF 3</small><h2 id="job-title">Fix the Porch</h2></div><div class="stars" id="stars">★☆☆</div></div>
-      <p id="job-copy">The front steps are in the next county. Put the porch back together.</p>
+      <p id="job-copy">Clear the storm junk blocking the porch.</p>
       <div id="requirements" class="requirements"></div>
     </section>
 
     <section class="board-wrap">
-      <div class="board-heading"><div><b>THE SALVAGE PILE</b><span>Merge identical junk to make stranger gear.</span></div><span class="board-count" id="board-count">0 / 16</span></div>
-      <div class="board" id="board" role="grid" aria-label="Salvage merge board"></div>
-      <div class="selection-hint" id="hint">Drag one piece onto its twin to merge.</div>
+      <div class="board-heading"><div><b>STORM DEBRIS</b><span>Swap neighbors. Match 3 or more to clear.</span></div><span class="board-count" id="board-count">30 tiles</span></div>
+      <div class="board" id="board" role="grid" aria-label="Storm debris match three board"></div>
+      <div class="selection-hint" id="hint">Match 4 to earn a line blast. Match 5 for a rainbow gator.</div>
     </section>
 
     <footer class="actions">
-      <button class="button button-secondary" id="scrap-button" disabled>SCRAP SELECTED</button>
-      <button class="button button-main" id="salvage-button"><span>＋</span> TAP FOR SALVAGE</button>
-      <button class="button button-deliver" id="deliver-button">DELIVER JOB</button>
+      <div class="stats"><span>MOVES LEFT <b id="moves">24</b></span><span>JUNK CLEARED <b id="score">0</b></span></div>
+      <div class="action-buttons">
+        <button class="button button-secondary" id="restart-button">RESTART JOB</button>
+        <button class="button button-main" id="job-button" disabled>JOB IN PROGRESS</button>
+      </div>
     </footer>
   </main>
 
@@ -40,17 +42,19 @@
     <div class="tutorial-card panel">
       <div class="tutorial-sticker">🌀</div>
       <p class="eyebrow">YOUR FIRST CLEANUP JOB</p>
-      <h2>Make a bigger mess<br>into better gear.</h2>
+      <h2>Match the mess.<br>Let gravity do the rest.</h2>
       <ol>
-        <li><b>Tap for salvage</b> to find storm junk.</li>
-        <li><b>Drag a piece onto an identical twin</b> to merge them.</li>
-        <li>Build the items on the job card, then <b>deliver the job</b>.</li>
+        <li><b>Swap neighboring junk</b> to line up three or more matching pieces.</li>
+        <li>Matched pieces clear. New storm junk drops in from above.</li>
+        <li><b>Match 4</b> for a line blast or <b>5</b> for a rainbow gator power-up.</li>
+        <li>Clear the job's requested debris before your moves run out.</li>
       </ol>
-      <p class="rule-note">Different pieces and empty spaces do nothing. No random moves.</p>
+      <p class="rule-note">No free shuffling. Every swap has to make a match.</p>
       <button class="button button-main" id="start-button">LET'S CLEAN UP</button>
     </div>
   </div>
   <div class="toast" id="toast" aria-live="polite"></div>
+  <script src="match3.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

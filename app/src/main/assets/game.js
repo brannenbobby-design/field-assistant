@@ -1,224 +1,139 @@
 (function (root) {
   'use strict';
-  const SIZE = 16;
-  const CHAINS = {
-    wood: { label: 'Porch lumber', icons: ['🪵', '🪚', '🪵', '🛠️', '🏠'], names: ['Soggy plank', 'Dry plank stack', 'Porch lumber', 'Instant porch kit', 'Trailer-palace plans'] },
-    chair: { label: 'Lawn chair', icons: ['🪑', '🪑', '🐊', '👑', '🛋️'], names: ['Busted lawn chair', 'Repaired chair', 'Gator recliner', 'Gator lifeguard throne', 'Mayor’s chair'] },
-    leaf: { label: 'Palm fronds', icons: ['🌿', '🍂', '🧹', '🌪️', '🛞'], names: ['Loose palm frond', 'Yard pile', 'Turbo broom', 'Hurricane leaf cannon', 'Storm steering wheel'] },
-    cooler: { label: 'Cooler', icons: ['🧊', '🧰', '🛒', '📡', '🐊'], names: ['Empty cooler', 'Bait cooler', 'Rolling bait cooler', 'Satellite bait cooler', 'Gator command center'] },
-    flip: { label: 'Flip-flops', icons: ['🩴', '🩴', '🥾', '🏄', '☁️'], names: ['Lone flip-flop', 'Matching pair', 'Gator-proof sandals', 'Storm-surfing sandals', 'Cloud-surfing flip-flops'] }
-  };
-  const JOBS = [
-    { title: 'Fix the Porch', copy: 'The front steps are in the next county. Put the porch back together.', needs: [{ chain: 'wood', level: 1, amount: 1 }, { chain: 'chair', level: 1, amount: 1 }] },
-    { title: 'Clear the Bait Shop', copy: 'The shop is buried in palm junk. The cooler is somehow still open.', needs: [{ chain: 'leaf', level: 2, amount: 1 }, { chain: 'cooler', level: 1, amount: 1 }] },
-    { title: 'Build Gator Command', copy: 'One last job: outfit the neighborhood gator for hurricane season.', needs: [{ chain: 'cooler', level: 4, amount: 1 }, { chain: 'flip', level: 2, amount: 1 }] }
-  ];
-
-  function newState() {
-    return {
-      board: [
-        { chain: 'wood', level: 0 }, { chain: 'chair', level: 0 }, { chain: 'leaf', level: 0 }, { chain: 'wood', level: 0 },
-        { chain: 'cooler', level: 0 }, { chain: 'chair', level: 0 }, { chain: 'flip', level: 0 }, { chain: 'wood', level: 0 },
-        { chain: 'leaf', level: 0 }, { chain: 'chair', level: 0 }, { chain: 'cooler', level: 0 }, { chain: 'flip', level: 0 },
-        null, null, null, null
-      ],
-      job: 0, coins: 0, merges: 0
-    };
-  }
-  function isSame(a, b) { return !!a && !!b && a.chain === b.chain && a.level === b.level; }
-  function merge(board, from, into) {
-    if (!board[from] || from === into || !isSame(board[from], board[into])) return { ok: false, reason: 'Only identical pieces merge.' };
-    if (board[from].level >= 4) return { ok: false, reason: 'That item is already as bizarre as it gets.' };
-    board[into] = { chain: board[from].chain, level: board[from].level + 1 };
-    board[from] = null;
-    return { ok: true, item: board[into] };
-  }
-  function counts(board) {
-    const result = {};
-    board.forEach(item => {
-      if (!item) return;
-      const key = item.chain + ':' + item.level;
-      result[key] = (result[key] || 0) + 1;
-    });
-    return result;
-  }
-  function deliveryStatus(state) {
-    const have = counts(state.board);
-    const needs = JOBS[state.job].needs;
-    return needs.map(n => ({ ...n, have: have[n.chain + ':' + n.level] || 0 }));
-  }
-  function canDeliver(state) { return deliveryStatus(state).every(n => n.have >= n.amount); }
-  function deliver(state) {
-    if (state.job >= JOBS.length || !canDeliver(state)) return false;
-    for (const need of JOBS[state.job].needs) {
-      let remaining = need.amount;
-      for (let i = 0; i < state.board.length && remaining > 0; i++) {
-        const item = state.board[i];
-        if (item && item.chain === need.chain && item.level === need.level) {
-          state.board[i] = null;
-          remaining--;
-        }
-      }
-    }
-    state.job++;
-    state.coins += 25;
-    return true;
-  }
-  function nextSalvageChain(state) {
-    if (state.job >= JOBS.length) return 'wood';
-    const need = deliveryStatus(state).filter(n => n.have < n.amount);
-    return need.length ? need[Math.floor(Math.random() * need.length)].chain : JOBS[state.job].needs[0].chain;
-  }
-
-  const core = { SIZE, CHAINS, JOBS, newState, isSame, merge, counts, deliveryStatus, canDeliver, deliver, nextSalvageChain };
-  if (typeof module !== 'undefined' && module.exports) module.exports = core;
-  root.FloridaMerge = core;
-
   if (typeof document === 'undefined') return;
+  const G = root.FloridaMatch3;
   const $ = id => document.getElementById(id);
-  const boardEl = $('board');
-  const hintEl = $('hint');
-  const toastEl = $('toast');
-  const SAVE_KEY = 'storm-cleanup-save-v2';
-  let state = restore();
-  let selected = null;
-  let dragFrom = null;
-  let toastTimer;
+  const boardEl = $('board'), hintEl = $('hint'), toastEl = $('toast');
+  const SAVE_KEY = 'storm-cleanup-match3-v3';
+  let selected = null, gesture = null, suppressClick = false, toastTimer;
+  let previousTiles = new WeakSet();
 
-  function restore() {
+  function loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-      if (saved && Array.isArray(saved.board) && saved.board.length === SIZE && Number.isInteger(saved.job)) {
-        saved.board = saved.board.map(item => item && CHAINS[item.chain] && item.level >= 0 && item.level <= 4 ? item : null);
-        saved.job = Math.max(0, Math.min(saved.job, JOBS.length));
+      if (saved && Array.isArray(saved.board) && saved.board.length === G.SIZE && Number.isInteger(saved.job) && saved.job >= 0 && saved.job <= G.JOBS.length) {
+        saved.board = saved.board.map(item => item && G.CHAINS[item.chain] && (!item.power || G.POWER[item.power]) ? { chain: item.chain, power: item.power || null } : null);
+        saved.cleared ||= {};
+        saved.score ||= 0; saved.coins ||= 0;
+        if (saved.job < G.JOBS.length) { saved.moves = Math.max(0, saved.moves || 0); saved.failed = saved.moves === 0 && !saved.won; }
         return saved;
       }
-    } catch (_) { /* use a fresh board */ }
-    return newState();
+    } catch (_) { /* start a new board */ }
+    return G.newState();
   }
+  let state = loadState();
   function save() { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
   function say(message) {
-    toastEl.textContent = message;
-    toastEl.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1700);
+    toastEl.textContent = message; toastEl.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
   }
-  function getItemName(item) { return CHAINS[item.chain].names[item.level]; }
-  function render() {
-    boardEl.replaceChildren();
-    state.board.forEach((item, index) => {
-      const cell = document.createElement('div');
-      cell.className = 'cell' + (item ? ' filled' : '') + (selected === index ? ' selected' : '');
-      cell.dataset.index = String(index);
-      cell.setAttribute('role', 'gridcell');
-      if (item) {
-        const icon = document.createElement('span'); icon.className = 'emoji'; icon.textContent = CHAINS[item.chain].icons[item.level];
-        const level = document.createElement('span'); level.className = 'level'; level.textContent = 'T' + (item.level + 1);
-        const name = document.createElement('span'); name.className = 'name'; name.textContent = getItemName(item);
-        cell.append(icon, level, name);
-        cell.setAttribute('aria-label', getItemName(item));
-        cell.draggable = false;
-        cell.addEventListener('pointerdown', event => beginDrag(event, index));
-        cell.addEventListener('pointercancel', cancelDrag);
-      } else {
-        cell.setAttribute('aria-label', 'Empty slot. Pieces cannot be moved here.');
-      }
-      cell.addEventListener('click', () => tapCell(index));
-      boardEl.appendChild(cell);
-    });
-    renderJob();
-    $('coins').textContent = String(state.coins);
-    const used = state.board.filter(Boolean).length;
-    $('board-count').textContent = used + ' / ' + SIZE;
-    $('scrap-button').disabled = selected === null || !state.board[selected];
-    $('salvage-button').disabled = !state.board.includes(null) || state.job >= JOBS.length;
-    const ready = state.job < JOBS.length && canDeliver(state);
-    $('deliver-button').disabled = !ready;
-    $('deliver-button').textContent = state.job >= JOBS.length ? 'NEIGHBORHOOD RESTORED!' : ready ? 'DELIVER JOB · +25 🪙' : 'DELIVER JOB';
-    if (selected !== null && state.board[selected]) hintEl.textContent = 'Selected: ' + getItemName(state.board[selected]) + ' · choose an identical twin.';
-    else hintEl.textContent = state.job >= JOBS.length ? 'All jobs done. Florida is mostly under control.' : 'Drag one piece onto its twin to merge.';
-  }
+  function stageIndex() { return Math.min(state.job, G.JOBS.length - 1); }
+  function itemName(item) { return item.power ? G.POWER[item.power].label : G.CHAINS[item.chain].names[stageIndex()]; }
+  function itemIcon(item) { return item.power ? G.POWER[item.power].icon : G.CHAINS[item.chain].icons[stageIndex()]; }
+  function tallyPower() { return state.board.filter(x => x?.power).length; }
   function renderJob() {
-    const done = state.job >= JOBS.length;
-    const job = done ? JOBS[JOBS.length - 1] : JOBS[state.job];
-    $('job-kicker').textContent = done ? 'ALL JOBS COMPLETE' : 'CURRENT JOB · ' + (state.job + 1) + ' OF ' + JOBS.length;
+    const done = state.job >= G.JOBS.length, job = done ? G.JOBS[G.JOBS.length - 1] : G.JOBS[state.job];
+    $('job-kicker').textContent = done ? 'ALL JOBS COMPLETE' : `CURRENT JOB · ${state.job + 1} OF ${G.JOBS.length}`;
     $('job-title').textContent = done ? 'Coast is looking good!' : job.title;
     $('job-copy').textContent = done ? 'You saved the block, the bait shop, and the neighborhood gator.' : job.copy;
-    $('stars').textContent = '★'.repeat(Math.min(state.job, 3)) + '☆'.repeat(Math.max(0, 3 - state.job));
+    const earned = state.won ? (state.moves >= Math.ceil(job.moves * .5) ? 3 : state.moves >= 3 ? 2 : 1) : Math.min(state.job, 3);
+    $('stars').textContent = '★'.repeat(earned) + '☆'.repeat(3 - earned);
     $('requirements').replaceChildren();
     if (done) {
       const badge = document.createElement('span'); badge.className = 'requirement ready'; badge.textContent = '✓ Cleanup complete'; $('requirements').appendChild(badge); return;
     }
-    deliveryStatus(state).forEach(need => {
-      const badge = document.createElement('span');
-      badge.className = 'requirement' + (need.have >= need.amount ? ' ready' : '');
-      const item = { chain: need.chain, level: need.level };
-      badge.textContent = CHAINS[need.chain].icons[need.level] + ' ' + getItemName(item) + '  ' + Math.min(need.have, need.amount) + '/' + need.amount;
+    G.jobStatus(state).forEach(need => {
+      const badge = document.createElement('span'); badge.className = 'requirement' + (need.have >= need.amount ? ' ready' : '');
+      const item = { chain: need.chain, power: null }, icon = G.CHAINS[need.chain].icons[stageIndex()];
+      badge.textContent = `${icon} ${G.CHAINS[need.chain].names[stageIndex()]} ${need.have}/${need.amount}`;
       $('requirements').appendChild(badge);
     });
   }
-  function setSelection(index) {
-    selected = state.board[index] ? index : null;
-    render();
+  function render() {
+    boardEl.replaceChildren();
+    state.board.forEach((item, index) => {
+      const cell = document.createElement('button');
+      cell.type = 'button'; cell.className = 'cell' + (item ? ' filled' : '') + (item && !previousTiles.has(item) ? ' dropping' : '') + (selected === index ? ' selected' : '') + (item?.power ? ' powered' : '');
+      cell.dataset.index = String(index); cell.setAttribute('role', 'gridcell');
+      if (item) {
+        cell.style.setProperty('--tile-color', G.CHAINS[item.chain].colors[stageIndex()]);
+        const icon = document.createElement('span'); icon.className = 'emoji'; icon.textContent = itemIcon(item);
+        const name = document.createElement('span'); name.className = 'name'; name.textContent = item.power ? G.POWER[item.power].label : G.CHAINS[item.chain].names[stageIndex()];
+        cell.append(icon, name); cell.setAttribute('aria-label', itemName(item) + (item.power ? ', power-up, tap to activate' : ''));
+      } else {
+        cell.classList.add('empty'); cell.setAttribute('aria-label', 'Empty board space');
+      }
+      cell.addEventListener('pointerdown', event => beginGesture(event, index));
+      cell.addEventListener('click', () => { if (suppressClick) { suppressClick = false; return; } tapCell(index); });
+      boardEl.appendChild(cell);
+    });
+    renderJob();
+    $('coins').textContent = String(state.coins);
+    $('score').textContent = String(state.score);
+    $('moves').textContent = String(state.moves);
+    $('board-count').textContent = `${G.SIZE} tiles`;
+    $('restart-button').disabled = state.job >= G.JOBS.length;
+    const action = $('job-button');
+    action.disabled = !(state.won || state.failed || state.job >= G.JOBS.length);
+    action.textContent = state.job >= G.JOBS.length ? 'PLAY AGAIN' : state.failed ? 'RETRY JOB' : state.won ? 'JOB COMPLETE · NEXT' : 'JOB IN PROGRESS';
+    previousTiles = new WeakSet(state.board.filter(Boolean));
+    if (state.won) hintEl.textContent = 'Job cleared! Leftover moves boost your stars.';
+    else if (state.failed) hintEl.textContent = 'Out of moves. Restart the job and take another run.';
+    else if (selected !== null && state.board[selected]) hintEl.textContent = state.board[selected].power ? 'Power-up selected. Tap again or swap it to fire.' : 'Selected. Swap it with a neighbor to make a match.';
+    else hintEl.textContent = 'Match 4 for a line blast. Match 5 for a rainbow gator.';
   }
   function tapCell(index) {
-    if (dragFrom !== null) return;
-    const target = state.board[index];
-    if (selected === null || selected === index) { setSelection(selected === index ? null : index); return; }
-    const source = state.board[selected];
-    if (isSame(source, target)) tryMerge(selected, index);
-    else say(target ? 'Those are different. Match the exact same piece and tier.' : 'Empty slots stay empty. Only matching pieces merge.');
+    const item = state.board[index];
+    if (!item) { selected = null; render(); return; }
+    if (item.power) {
+      const result = G.activate(state, index);
+      if (result.ok) { selected = null; save(); render(); say(`${G.POWER[result.power].label} fired!`); }
+      else say(result.reason);
+      return;
+    }
+    if (selected === null || selected === index) { selected = selected === index ? null : index; render(); return; }
+    if (G.adjacent(selected, index)) trySwap(selected, index);
+    else { selected = index; render(); say('Swap neighboring pieces only.'); }
   }
-  function tryMerge(from, into) {
-    const outcome = merge(state.board, from, into);
-    if (!outcome.ok) { say(outcome.reason); return false; }
-    selected = null; state.merges++; state.coins += 1;
-    save(); render();
-    say('Merged into ' + getItemName(outcome.item) + '!');
-    return true;
+  function trySwap(from, to) {
+    const before = tallyPower();
+    const result = G.swap(state, from, to);
+    if (!result.ok) { say(result.reason); selected = null; render(); return; }
+    selected = null; save(); render();
+    const after = tallyPower();
+    if (after > before) say('Power-up earned! Tap it to fire, or swap it into another match.');
+    else if (result.matched >= 5) say('Big match! Watch the cascade.');
+    else say(result.power ? 'Power-up fired!' : 'Nice match! New junk is dropping in.');
   }
-  function beginDrag(event, index) {
+  function beginGesture(event, index) {
     if (event.button !== undefined && event.button !== 0) return;
-    dragFrom = index;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    event.currentTarget.classList.add('dragging');
-    event.preventDefault();
+    gesture = { index, x: event.clientX, y: event.clientY };
+    if (event.cancelable) event.preventDefault();
   }
   document.addEventListener('pointerup', event => {
-    if (dragFrom === null) return;
-    const from = dragFrom;
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.cell');
-    const into = target ? Number(target.dataset.index) : -1;
-    dragFrom = null;
-    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-    if (into >= 0 && from !== into) tryMerge(from, into);
-    else if (into === from) tapCell(from);
-    else say('Drop onto an identical piece to merge.');
-    event.preventDefault();
+    if (!gesture) return;
+    const start = gesture, dx = event.clientX - start.x, dy = event.clientY - start.y;
+    const element = document.elementFromPoint(event.clientX, event.clientY)?.closest('.cell');
+    let target = element ? Number(element.dataset.index) : start.index;
+    if (target === start.index && Math.max(Math.abs(dx), Math.abs(dy)) > 18) {
+      const { row, col } = G.coords(start.index);
+      if (Math.abs(dx) > Math.abs(dy)) target = start.index + (dx > 0 ? 1 : -1);
+      else target = start.index + (dy > 0 ? G.COLS : -G.COLS);
+      if (target < 0 || target >= G.SIZE || (Math.floor(target / G.COLS) !== row && Math.abs(dx) > Math.abs(dy)) || (Math.abs(dx) > Math.abs(dy) && Math.floor(target / G.COLS) !== row) || (Math.abs(dx) <= Math.abs(dy) && Math.abs(Math.floor(target / G.COLS) - row) !== 1)) target = start.index;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(target % G.COLS - col) !== 1) target = start.index;
+    }
+    gesture = null; suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+    if (target !== start.index && target >= 0 && target < G.SIZE && G.adjacent(start.index, target)) trySwap(start.index, target);
+    else tapCell(start.index);
   });
-  function cancelDrag() { dragFrom = null; document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging')); }
-
-  $('salvage-button').addEventListener('click', () => {
-    const slot = state.board.indexOf(null);
-    if (slot < 0) { say('The pile is full. Merge or scrap something first.'); return; }
-    const chain = nextSalvageChain(state);
-    state.board[slot] = { chain, level: 0 };
-    save(); render();
-    say('Found: ' + getItemName(state.board[slot]));
+  document.addEventListener('pointercancel', () => { gesture = null; });
+  $('restart-button').addEventListener('click', () => { G.restartJob(state); selected = null; save(); render(); say('Job reset. Fresh board, same Florida.'); });
+  $('job-button').addEventListener('click', () => {
+    if (state.failed) { G.restartJob(state); selected = null; save(); render(); say('Take two.'); return; }
+    if (state.job >= G.JOBS.length) { state = G.newState(); selected = null; save(); render(); $('tutorial').classList.remove('hidden'); return; }
+    if (state.won) { G.nextJob(state); selected = null; save(); render(); say(state.job >= G.JOBS.length ? 'Cleanup complete. You are a county legend.' : 'Next job. The debris got weirder.'); }
   });
-  $('scrap-button').addEventListener('click', () => {
-    if (selected === null || !state.board[selected]) return;
-    const item = state.board[selected];
-    state.board[selected] = null; selected = null; state.coins += 2;
-    save(); render(); say('Scrapped ' + getItemName(item) + ' for 2 coins.');
-  });
-  $('deliver-button').addEventListener('click', () => {
-    if (!deliver(state)) { say('Build every item shown on the job card first.'); return; }
-    selected = null; save(); render();
-    say(state.job >= JOBS.length ? 'Cleanup complete! You are the hero of this county.' : 'Job complete! The neighborhood looks a little less Florida.');
-  });
-  $('start-button').addEventListener('click', () => $('tutorial').classList.add('hidden'));
-  if (localStorage.getItem('storm-cleanup-tutorial-v2') === 'seen') $('tutorial').classList.add('hidden');
-  $('start-button').addEventListener('click', () => localStorage.setItem('storm-cleanup-tutorial-v2', 'seen'));
+  $('start-button').addEventListener('click', () => { $('tutorial').classList.add('hidden'); localStorage.setItem('storm-cleanup-match3-tutorial-v3', 'seen'); });
+  if (localStorage.getItem('storm-cleanup-match3-tutorial-v3') === 'seen') $('tutorial').classList.add('hidden');
   render();
 })(typeof window === 'undefined' ? globalThis : window);

@@ -1,25 +1,26 @@
-# Florida Man: Storm Cleanup — First playable
+# Florida Man: Storm Cleanup — Match-three prototype
 
 ## Core loop
 
-Tap to salvage base junk, drag identical pieces of the same tier together to merge, and build the exact pieces requested on the active cleanup job. Deliver the requested items to free board slots, earn coins, and open the next job. Empty cells are not movement targets. A mismatched drop returns to the board unchanged. Scrapping a selected piece frees space for two coins.
+Swap two neighboring storm-debris tiles. Only swaps that create a horizontal or vertical run of at least three stick. Matched tiles disappear, pieces above fall into the gaps, and new debris drops from the top. Cascades resolve before the next move. Invalid swaps snap back and cost nothing.
 
-## Merge chains
+Each cleanup job sets two debris quotas and a move limit. Clear both quotas to finish the job; leftover moves award more stars. The board refills continuously, so the goal is clearing the requested mess rather than leaving a permanently empty board. If the board has no legal swaps, it reshuffles without charging a move.
 
-| Chain | Early pieces | Increasingly bizarre upgrades |
-|---|---|---|
-| Porch lumber | Soggy plank → dry plank stack | Instant porch kit → trailer-palace plans |
-| Lawn chair | Busted chair → repaired chair | Gator recliner → lifeguard throne → mayor's chair |
-| Palm fronds | Loose frond → yard pile | Turbo broom → hurricane leaf cannon → storm steering wheel |
-| Cooler | Empty cooler → bait cooler | Rolling bait cooler → satellite bait cooler → gator command center |
-| Flip-flops | Lone flip-flop → matching pair | Gator-proof sandals → storm-surfing sandals → cloud-surfing flip-flops |
+## Power-ups
 
-## First version jobs
+- Match four horizontally or vertically: earn a row or column blast.
+- Match five: earn a rainbow gator that clears every piece of its debris type.
+- Make a T or L intersection: earn a hurricane bomb.
+- Tap a power-up or swap it into a match to fire it. It consumes one move and can create cascades.
 
-1. Fix the Porch: one dry plank stack and one repaired chair.
-2. Clear the Bait Shop: one turbo broom and one bait cooler.
-3. Build Gator Command: one gator command center and one gator-proof sandal pair.
+## Jobs
 
-## Controls and platform
+1. Fix the Porch: clear 10 soggy planks and 10 busted lawn chairs in 24 moves.
+2. Clear the Bait Shop: clear 12 palm-frond piles and 12 coolers in 26 moves.
+3. Build Gator Command: clear 14 satellite bait coolers and 14 storm-surfing sandals in 28 moves.
 
-Portrait touch layout. Drag and drop or tap one piece then tap its identical match. Only same-chain, same-tier pieces merge. Levels stop at tier 5. The first version saves the board locally on-device and works offline.
+Tile art/names escalate by job: porch junk becomes improbable construction equipment, chair debris becomes gator furniture, leaf piles become hurricane gadgets, coolers become command hardware, and flip-flops become storm gear.
+
+## Platform
+
+Portrait, offline, touch-first. The five-column, six-row board uses adjacent swaps, tap-to-select, gravity refill, move-limited jobs, cascades, and earned power-ups. Progress saves locally on-device.

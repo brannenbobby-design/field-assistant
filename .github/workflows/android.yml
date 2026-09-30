@@ -51,7 +51,7 @@ jobs:
           gradle = Path("app/build.gradle.kts").read_text()
           assert 'android:screenOrientation="portrait"' in manifest
           assert 'applicationId = "com.brannenservices.floridamanunsupervised"' in gradle
-          assert 'versionCode = 13' in gradle and 'versionName = "1.0.1"' in gradle
+          assert 'versionCode = 14' in gradle and 'versionName = "1.0.2"' in gradle
           assert Path("app/src/main/assets/storm_porch.webp").stat().st_size > 100_000
           PY
       - name: Build signed Android APK
@@ -61,10 +61,10 @@ jobs:
           ANDROID_KEY_PASSWORD: android
         run: gradle --no-daemon :app:assembleRelease
       - name: Rename APK
-        run: mkdir -p dist && cp app/build/outputs/apk/release/app-release.apk dist/FloridaManStormCleanup-v1.0.1.apk
+        run: mkdir -p dist && cp app/build/outputs/apk/release/app-release.apk dist/FloridaManStormCleanup-v1.0.2.apk
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: FloridaManStormCleanup-v1.0.1-Android
-          path: dist/FloridaManStormCleanup-v1.0.1.apk
+          name: FloridaManStormCleanup-v1.0.2-Android
+          path: dist/FloridaManStormCleanup-v1.0.2.apk
           if-no-files-found: error
