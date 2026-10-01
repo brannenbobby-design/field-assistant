@@ -4,14 +4,17 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
+import android.hardware.HardwareBuffer;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
@@ -23,6 +26,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 /** Accessibility layer: every action is gated by the user's master switch. */
 public class PhoneControlService extends AccessibilityService {
@@ -204,13 +212,17 @@ public class PhoneControlService extends AccessibilityService {
             int score = matchScore(wanted, normalize(searchableLabel(node)));
             if (score < 70) continue;
             AccessibilityNodeInfo target = clickableTarget(node);
-            if (target == null) continue;
             Rect bounds = new Rect();
-            target.getBoundsInScreen(bounds);
+            if (target != null) target.getBoundsInScreen(bounds);
+            if (bounds.isEmpty()) {
+                node.getBoundsInScreen(bounds);
+                target = null;
+            }
             if (bounds.isEmpty()) continue;
+            String label = target != null ? nodeLabel(target) : searchableLabel(node);
             boolean duplicate = false;
             for (MatchTarget existing : out) if (existing.bounds.equals(bounds)) { duplicate = true; break; }
-            if (!duplicate) out.add(new MatchTarget(target, new Rect(bounds), nodeLabel(target), score));
+            if (!duplicate) out.add(new MatchTarget(target, new Rect(bounds), label, score));
         }
         java.util.Collections.sort(out, (a,b) -> {
             int s = Integer.compare(b.score, a.score);
@@ -223,7 +235,9 @@ public class PhoneControlService extends AccessibilityService {
 
     private boolean tapTextInternal(String text, boolean longClick, boolean confirmed, int ordinal) {
         List<MatchTarget> matches = findMatches(text);
-        if (matches.isEmpty()) return false;
+        if (matches.isEmpty()) {
+            return ocrLocateText(text, longClick ? "long_tap" : "tap", ordinal, confirmed);
+        }
         int bestScore = matches.get(0).score;
         List<MatchTarget> best = new ArrayList<>();
         for (MatchTarget m : matches) if (m.score == bestScore) best.add(m);
@@ -240,8 +254,9 @@ public class PhoneControlService extends AccessibilityService {
             requestConfirmation("tap " + chosen.label, () -> tapTextInternal(requestedText,longClick,true,requestedOrdinal));
             return true;
         }
-        boolean done=chosen.node.performAction(longClick ? AccessibilityNodeInfo.ACTION_LONG_CLICK : AccessibilityNodeInfo.ACTION_CLICK);
-        if(!done) done=swipeTap(chosen.bounds.centerX(),chosen.bounds.centerY());
+        boolean done=false;
+        if(chosen.node!=null) done=chosen.node.performAction(longClick ? AccessibilityNodeInfo.ACTION_LONG_CLICK : AccessibilityNodeInfo.ACTION_CLICK);
+        if(!done) done=longClick ? gesturePress(chosen.bounds.centerX(),chosen.bounds.centerY(),650) : swipeTap(chosen.bounds.centerX(),chosen.bounds.centerY());
         if(done) hideOverlays();
         return done;
     }
@@ -262,7 +277,7 @@ public class PhoneControlService extends AccessibilityService {
 
     private boolean findText(String text) {
         List<MatchTarget> matches=findMatches(text);
-        if(matches.isEmpty()) return false;
+        if(matches.isEmpty()) return ocrLocateText(text, "find", 0, true);
         MatchTarget m=matches.get(0);
         highlightedTarget=new Rect(m.bounds);
         showHighlight(m.bounds, m.label.isEmpty()?text:m.label);
@@ -275,6 +290,112 @@ public class PhoneControlService extends AccessibilityService {
         highlightedTarget=null;
         hideOverlays();
         return swipeTap(r.centerX(),r.centerY());
+    }
+
+    private boolean ocrLocateText(String text, String mode, int ordinal, boolean confirmed) {
+        if (text == null || text.trim().isEmpty() || android.os.Build.VERSION.SDK_INT < 30) return false;
+        final String requested = text;
+        final String actionMode = mode;
+        final int requestedOrdinal = ordinal;
+        final boolean wasConfirmed = confirmed;
+        Executor executor = command -> handler.post(command);
+        try {
+            takeScreenshot(Display.DEFAULT_DISPLAY, executor, new AccessibilityService.TakeScreenshotCallback() {
+                @Override public void onSuccess(AccessibilityService.ScreenshotResult screenshot) {
+                    HardwareBuffer buffer = screenshot.getHardwareBuffer();
+                    if (buffer == null) return;
+                    Bitmap hardwareBitmap = Bitmap.wrapHardwareBuffer(buffer, screenshot.getColorSpace());
+                    if (hardwareBitmap == null) { buffer.close(); return; }
+                    Bitmap bitmap = hardwareBitmap.copy(Bitmap.Config.ARGB_8888, false);
+                    buffer.close();
+                    if (bitmap == null) return;
+                    InputImage image = InputImage.fromBitmap(bitmap, 0);
+                    com.google.mlkit.vision.text.TextRecognizer recognizer =
+                            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+                    recognizer.process(image)
+                            .addOnSuccessListener(result -> {
+                                try { handleOcrResult(requested, actionMode, requestedOrdinal, wasConfirmed, result); }
+                                finally { recognizer.close(); bitmap.recycle(); }
+                            })
+                            .addOnFailureListener(error -> {
+                                recognizer.close();
+                                bitmap.recycle();
+                                VoiceControlService.announceStatus("Couldn't read text on this screen");
+                            });
+                }
+                @Override public void onFailure(int errorCode) {
+                    VoiceControlService.announceStatus("Screen text capture failed");
+                }
+            });
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void handleOcrResult(String requested, String mode, int ordinal, boolean confirmed, Text result) {
+        String wanted = normalize(requested);
+        List<MatchTarget> matches = new ArrayList<>();
+        for (Text.TextBlock block : result.getTextBlocks()) {
+            for (Text.Line line : block.getLines()) {
+                addOcrCandidate(matches, wanted, line.getText(), line.getBoundingBox());
+                for (Text.Element element : line.getElements()) {
+                    addOcrCandidate(matches, wanted, element.getText(), element.getBoundingBox());
+                }
+            }
+        }
+        if (matches.isEmpty()) {
+            VoiceControlService.announceStatus("Couldn't find: " + requested);
+            return;
+        }
+        java.util.Collections.sort(matches, (a,b) -> {
+            int s=Integer.compare(b.score,a.score);
+            if(s!=0) return s;
+            int y=Integer.compare(a.bounds.top,b.bounds.top);
+            return y!=0 ? y : Integer.compare(a.bounds.left,b.bounds.left);
+        });
+        int bestScore=matches.get(0).score;
+        List<MatchTarget> best=new ArrayList<>();
+        for(MatchTarget m:matches) if(m.score==bestScore) best.add(m);
+
+        if ("find".equals(mode)) {
+            MatchTarget m=best.get(0);
+            highlightedTarget=new Rect(m.bounds);
+            showHighlight(m.bounds, m.label);
+            VoiceControlService.announceStatus("Found " + requested);
+            return;
+        }
+        if (ordinal <= 0 && best.size() > 1) {
+            showMatchingNumbers(best);
+            VoiceControlService.announceStatus("Multiple matches found. Say tap number.");
+            return;
+        }
+        int index=ordinal>0 ? ordinal-1 : 0;
+        if(index<0 || index>=best.size()) {
+            VoiceControlService.announceStatus("Couldn't find that numbered match");
+            return;
+        }
+        MatchTarget chosen=best.get(index);
+        if(!confirmed && isRiskyLabel(chosen.label)) {
+            final Rect target=new Rect(chosen.bounds);
+            requestConfirmation("tap " + chosen.label, () -> {
+                if("long_tap".equals(mode)) gesturePress(target.centerX(),target.centerY(),650);
+                else swipeTap(target.centerX(),target.centerY());
+            });
+            return;
+        }
+        boolean done="long_tap".equals(mode)
+                ? gesturePress(chosen.bounds.centerX(),chosen.bounds.centerY(),650)
+                : swipeTap(chosen.bounds.centerX(),chosen.bounds.centerY());
+        VoiceControlService.announceStatus(done ? "Tapped " + requested : "Couldn't tap " + requested);
+    }
+
+    private void addOcrCandidate(List<MatchTarget> out, String wanted, String rawText, Rect bounds) {
+        if(rawText==null || bounds==null || bounds.isEmpty()) return;
+        int score=matchScore(wanted, normalize(rawText));
+        if(score<70) return;
+        for(MatchTarget existing:out) if(existing.bounds.equals(bounds)) return;
+        out.add(new MatchTarget(null,new Rect(bounds),rawText,score));
     }
 
     private void collectVisible(AccessibilityNodeInfo node, List<AccessibilityNodeInfo> out, int depth) {
@@ -648,6 +769,11 @@ public class PhoneControlService extends AccessibilityService {
     private boolean swipeTap(int x, int y) {
         Path path = new Path(); path.moveTo(x, y); path.lineTo(x + 1, y + 1);
         return dispatchGesture(new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(path, 0, 90)).build(), null, null);
+    }
+
+    private boolean gesturePress(int x, int y, long duration) {
+        Path path = new Path(); path.moveTo(x, y);
+        return dispatchGesture(new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(path, 0, duration)).build(), null, null);
     }
 
     private boolean backMultiple(int count) {
