@@ -48,16 +48,19 @@ final class VoiceCommandParser {
         if(matches(value,"hide numbers","hide grid","hide labels","clear overlay","hide help")) return Result.action("HIDE_OVERLAYS",null);
         if(matches(value,"what is on screen","what's on screen","read screen","read this screen","describe screen")) return Result.read();
 
-        if(matches(value,"scroll down","swipe up","move down")) return Result.action("SCROLL","down");
-        if(matches(value,"scroll up","swipe down","move up")) return Result.action("SCROLL","up");
-        if(matches(value,"scroll left","swipe left","move left")) return Result.action("SCROLL","left");
-        if(matches(value,"scroll right","swipe right","move right")) return Result.action("SCROLL","right");
+        if(matches(value,"scroll down","swipe up","move down","go down")) return Result.action("SCROLL","down");
+        if(matches(value,"scroll up","swipe down","move up","go up")) return Result.action("SCROLL","up");
+        if(matches(value,"scroll left","swipe left","move left","go left")) return Result.action("SCROLL","left");
+        if(matches(value,"scroll right","swipe right","move right","go right")) return Result.action("SCROLL","right");
         if(matches(value,"scroll down a little","scroll a little down")) return Result.action("SCROLL","down_small");
         if(matches(value,"scroll up a little","scroll a little up")) return Result.action("SCROLL","up_small");
         if(matches(value,"scroll down halfway","scroll halfway down","page down")) return Result.action("SCROLL","down_half");
         if(matches(value,"scroll up halfway","scroll halfway up","page up")) return Result.action("SCROLL","up_half");
         if(matches(value,"scroll to top","go to top","top of page")) return Result.action("SCROLL","top");
         if(matches(value,"scroll to bottom","go to bottom","bottom of page")) return Result.action("SCROLL","bottom");
+
+        if(matches(value,"zoom in","magnify","increase zoom")) return Result.action("ZOOM","in");
+        if(matches(value,"zoom out","reduce zoom","decrease zoom")) return Result.action("ZOOM","out");
 
         if(matches(value,"volume up","turn volume up","louder")) return Result.action("VOLUME_UP",null);
         if(matches(value,"volume down","turn volume down","quieter")) return Result.action("VOLUME_DOWN",null);
