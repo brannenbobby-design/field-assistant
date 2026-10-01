@@ -128,6 +128,7 @@ public class PhoneControlService extends AccessibilityService {
             case "TYPE_TEXT": return service.typeText(arg);
             case "EDIT_TEXT": return service.editText(arg);
             case "KEY_ACTION": return service.keyAction(arg);
+            case "SMART_SEARCH": return service.smartSearch();
             case "CONFIRM": return service.confirmPendingAction();
             case "CANCEL": pendingConfirmation = null; return true;
             case "SHOW_NUMBERS": return service.showNumbers();
@@ -564,11 +565,65 @@ public class PhoneControlService extends AccessibilityService {
         }
     }
 
+    private boolean smartSearch() {
+        AccessibilityNodeInfo focused = focusedEditable();
+        if (focused != null) return keyAction("search");
+        return focusField("search");
+    }
+
     private boolean keyAction(String action) {
-        if("send".equals(action)) return tapText("send",false);
-        AccessibilityNodeInfo focused=focusedEditable();
-        if(focused==null) return false;
-        if(android.os.Build.VERSION.SDK_INT>=30) return focused.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId());
+        if ("send".equals(action)) {
+            if (focusedEditable() == null) return tapText("send", false);
+            requestConfirmation("send message", () -> performImeActionWithGboardFallback("send"));
+            return true;
+        }
+        return performImeActionWithGboardFallback(action);
+    }
+
+    private boolean performImeActionWithGboardFallback(String action) {
+        AccessibilityNodeInfo focused = focusedEditable();
+        if (focused != null && android.os.Build.VERSION.SDK_INT >= 30) {
+            boolean done = focused.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId());
+            if (done) return true;
+        }
+        return tapGboardActionKey(action);
+    }
+
+    private boolean tapGboardActionKey(String action) {
+        String[] aliases;
+        switch (action == null ? "" : action) {
+            case "search": aliases = new String[]{"search"}; break;
+            case "go": aliases = new String[]{"go"}; break;
+            case "done": aliases = new String[]{"done"}; break;
+            case "next": aliases = new String[]{"next"}; break;
+            case "send": aliases = new String[]{"send"}; break;
+            case "enter":
+            default: aliases = new String[]{"enter", "return"}; break;
+        }
+        try {
+            for (android.view.accessibility.AccessibilityWindowInfo window : getWindows()) {
+                AccessibilityNodeInfo root = window.getRoot();
+                if (root == null) continue;
+                List<AccessibilityNodeInfo> nodes = new ArrayList<>();
+                collectVisible(root, nodes, 0);
+                for (AccessibilityNodeInfo node : nodes) {
+                    CharSequence pkgCs = node.getPackageName();
+                    String pkg = pkgCs == null ? "" : pkgCs.toString().toLowerCase(Locale.US);
+                    if (!pkg.contains("inputmethod") && !pkg.contains("keyboard")) continue;
+                    String label = normalize(searchableLabel(node));
+                    boolean match = false;
+                    for (String alias : aliases) {
+                        if (label.equals(alias) || label.contains(alias)) { match = true; break; }
+                    }
+                    if (!match) continue;
+                    AccessibilityNodeInfo target = clickableTarget(node);
+                    if (target != null && target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true;
+                    Rect bounds = new Rect();
+                    (target != null ? target : node).getBoundsInScreen(bounds);
+                    if (!bounds.isEmpty() && swipeTap(bounds.centerX(), bounds.centerY())) return true;
+                }
+            }
+        } catch (Exception ignored) { }
         return false;
     }
 
