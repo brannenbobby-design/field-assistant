@@ -57,6 +57,10 @@ public class VoiceControlService extends Service {
         VoiceControlService service = current;
         if (service != null) service.updateNotification("Confirm action: " + description + ". Say confirm or cancel.");
     }
+    public static void announceStatus(String message) {
+        VoiceControlService service = current;
+        if (service != null && message != null && !message.isEmpty()) service.updateNotification(message);
+    }
     public static String lastHeard(android.content.Context context) {
         return context.getSharedPreferences(PREFS, 0).getString(LAST_HEARD, "");
     }
