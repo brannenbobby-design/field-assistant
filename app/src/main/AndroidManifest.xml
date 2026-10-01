@@ -5,7 +5,7 @@
   </activity>
   <service android:name="com.brannenservices.phonecontrol.PhoneControlService" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="false">
    <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
-   <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service_config"/>
+   <meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service_config_v03"/>
   </service>
  </application>
 </manifest>
