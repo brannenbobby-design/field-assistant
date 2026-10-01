@@ -39,7 +39,8 @@ public class VoiceControlService extends Service {
   if(s.equals("home")||s.equals("go home"))c="HOME"; else if(s.equals("back")||s.equals("go back"))c="BACK";
   else if(s.equals("recents")||s.equals("recent apps")||s.equals("open recents"))c="RECENTS";
   else if(s.equals("notifications")||s.equals("open notifications"))c="NOTIFICATIONS";
-  else if(s.equals("settings")||s.equals("open settings")){c="OPEN_APP";a="com.android.settings";}\n  else if(s.startsWith("open ")&&s.length()>5){c="OPEN_NAMED_APP";a=s.substring(5).trim();}
+  else if(s.equals("settings")||s.equals("open settings")){c="OPEN_APP";a="com.android.settings";}
+  else if(s.startsWith("open ")&&s.length()>5){c="OPEN_NAMED_APP";a=s.substring(5).trim();}
   else if(s.equals("scroll down")||s.equals("swipe up"))c="SWIPE_UP"; else if(s.equals("scroll up")||s.equals("swipe down"))c="SWIPE_DOWN";
   else if(s.equals("swipe left"))c="SWIPE_LEFT"; else if(s.equals("swipe right"))c="SWIPE_RIGHT";
   if(c!=null)PhoneControlService.runCommand(c,a);
