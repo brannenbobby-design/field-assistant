@@ -17,10 +17,27 @@ public final class VoiceCommandParserTest {
         expect("cancel", "CANCEL", null);
         expect("scroll down", "SWIPE_UP", null);
         expect("type Bobby’s test message", "TYPE_TEXT", "Bobby’s test message");
+        expect("tap second Continue", "TAP_TEXT_ORDINAL", "2|continue");
+        expect("find Submit", "FIND_TEXT", "submit");
+        expect("tap it", "TAP_HIGHLIGHTED", null);
+        expect("show commands", "SHOW_HELP", null);
+        expect("repeat that", "REPEAT_LAST", null);
+        expect("undo", "UNDO_LAST", null);
+        expect("back 2 screens", "BACK_MULTIPLE", "2");
+        expect("scroll down a little", "SCROLL", "down_small");
+        expect("scroll halfway up", "SCROLL", "up_half");
+        expect("scroll to bottom", "SCROLL", "bottom");
+        expect("clear text", "EDIT_TEXT", "clear");
+        expect("select all", "EDIT_TEXT", "select_all");
+        expect("copy", "EDIT_TEXT", "copy");
+        expect("paste", "EDIT_TEXT", "paste");
+        expect("press enter", "KEY_ACTION", "enter");
+        expect("send it", "KEY_ACTION", "send");
+        expect("hit search", "FOCUS_FIELD", "search");
         if (VoiceCommandParser.parse("random unrelated sentence") != null) throw new AssertionError("unknown phrase must not trigger an action");
         if (!VoiceCommandParser.parse("read this screen").readScreen) throw new AssertionError("screen reading phrase not recognized");
         if (!VoiceCommandParser.parse("stop listening").stopListening) throw new AssertionError("stop phrase not recognized");
-        System.out.println("VoiceCommandParserTest: 18 checks passed");
+        System.out.println("VoiceCommandParserTest: 35 checks passed");
     }
 
     private static void expect(String phrase, String action, String argument) {
