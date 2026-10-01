@@ -15,7 +15,7 @@ public final class VoiceCommandParserTest {
         expect("tap Continue", "TAP_TEXT", "continue");
         expect("confirm action", "CONFIRM", null);
         expect("cancel", "CANCEL", null);
-        expect("scroll down", "SWIPE_UP", null);
+        expect("scroll down", "SCROLL", "down");
         expect("type Bobby’s test message", "TYPE_TEXT", "Bobby’s test message");
         expect("tap second Continue", "TAP_TEXT_ORDINAL", "2|continue");
         expect("find Submit", "FIND_TEXT", "submit");
