@@ -52,6 +52,7 @@ public class PhoneControlService extends AccessibilityService {
     private static String undoCommand;
     private static String undoArgument;
     private Rect highlightedTarget;
+    private String previousTextValue;
     private final Map<Integer, NumberedTarget> numberedTargets = new LinkedHashMap<>();
     private final List<TextView> labels = new ArrayList<>();
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -404,6 +405,7 @@ public class PhoneControlService extends AccessibilityService {
         if(focused==null) return false;
         CharSequence current=focused.getText();
         String prefix=current==null ? "" : current.toString();
+        previousTextValue=prefix;
         android.os.Bundle args=new android.os.Bundle();
         args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, prefix + value);
         return focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,args);
@@ -415,6 +417,7 @@ public class PhoneControlService extends AccessibilityService {
         CharSequence currentCs=focused.getText();
         String current=currentCs==null ? "" : currentCs.toString();
         android.os.Bundle args=new android.os.Bundle();
+        if(!"undo".equals(action)) previousTextValue=current;
         switch(action==null?"":action) {
             case "delete":
                 if(current.isEmpty()) return true;
@@ -430,7 +433,11 @@ public class PhoneControlService extends AccessibilityService {
             case "copy": return focused.performAction(AccessibilityNodeInfo.ACTION_COPY);
             case "paste": return focused.performAction(AccessibilityNodeInfo.ACTION_PASTE);
             case "undo":
-                return false;
+                if(previousTextValue==null) return false;
+                String restore=previousTextValue;
+                previousTextValue=current;
+                args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,restore);
+                return focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,args);
             default: return false;
         }
     }
