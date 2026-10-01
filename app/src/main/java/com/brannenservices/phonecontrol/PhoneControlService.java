@@ -47,6 +47,11 @@ public class PhoneControlService extends AccessibilityService {
         NumberedTarget(Rect bounds, String label) { this.bounds = bounds; this.label = label; }
     }
     private static Runnable pendingConfirmation;
+    private static String lastCommand;
+    private static String lastArgument;
+    private static String undoCommand;
+    private static String undoArgument;
+    private Rect highlightedTarget;
     private final Map<Integer, NumberedTarget> numberedTargets = new LinkedHashMap<>();
     private final List<TextView> labels = new ArrayList<>();
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -62,31 +67,71 @@ public class PhoneControlService extends AccessibilityService {
 
     public static boolean runCommand(String command, String arg) {
         PhoneControlService service = self;
-        if (service == null || !ControlPrefs.enabled(service)) return false;
-        if (command == null) return false;
+        if (service == null || !ControlPrefs.enabled(service) || command == null) return false;
+
+        if ("REPEAT_LAST".equals(command)) {
+            if (lastCommand == null) return false;
+            return runCommand(lastCommand, lastArgument);
+        }
+        if ("UNDO_LAST".equals(command)) {
+            if (undoCommand == null) return false;
+            String c = undoCommand, a = undoArgument;
+            undoCommand = null; undoArgument = null;
+            return runCommandInternal(service, c, a);
+        }
+
+        boolean done = runCommandInternal(service, command, arg);
+        if (done && isRepeatable(command)) {
+            lastCommand = command;
+            lastArgument = arg;
+            if ("TYPE_TEXT".equals(command) || "EDIT_TEXT".equals(command)) {
+                undoCommand = "EDIT_TEXT";
+                undoArgument = "undo";
+            } else if ("BACK".equals(command)) {
+                undoCommand = null; undoArgument = null;
+            }
+        }
+        return done;
+    }
+
+    private static boolean isRepeatable(String command) {
+        return !("CONFIRM".equals(command) || "CANCEL".equals(command) || "SHOW_HELP".equals(command)
+                || "SHOW_NUMBERS".equals(command) || "SHOW_GRID".equals(command) || "HIDE_OVERLAYS".equals(command)
+                || "FIND_TEXT".equals(command) || "TAP_HIGHLIGHTED".equals(command));
+    }
+
+    private static boolean runCommandInternal(PhoneControlService service, String command, String arg) {
         switch (command) {
             case "HOME": service.hideOverlays(); return service.performGlobalAction(GLOBAL_ACTION_HOME);
             case "BACK": service.hideOverlays(); return service.performGlobalAction(GLOBAL_ACTION_BACK);
+            case "BACK_MULTIPLE": return service.backMultiple(parseInt(arg, 1));
             case "RECENTS": service.hideOverlays(); return service.performGlobalAction(GLOBAL_ACTION_RECENTS);
             case "NOTIFICATIONS": service.hideOverlays(); return service.performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
             case "QUICK_SETTINGS": service.hideOverlays(); return service.performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS);
             case "OPEN_NAMED_APP": return service.openNamedApp(arg);
             case "TAP_TEXT": return service.tapText(arg, false);
+            case "TAP_TEXT_ORDINAL": return service.tapTextOrdinal(arg);
+            case "FIND_TEXT": return service.findText(arg);
+            case "TAP_HIGHLIGHTED": return service.tapHighlighted();
             case "TAP_REGION": return service.tapRegion(arg);
             case "FOCUS_FIELD": return service.focusField(arg);
             case "LONG_PRESS_TEXT": return service.tapText(arg, true);
             case "TYPE_TEXT": return service.typeText(arg);
+            case "EDIT_TEXT": return service.editText(arg);
+            case "KEY_ACTION": return service.keyAction(arg);
             case "CONFIRM": return service.confirmPendingAction();
             case "CANCEL": pendingConfirmation = null; return true;
             case "SHOW_NUMBERS": return service.showNumbers();
             case "TAP_NUMBER": return service.tapNumber(parseInt(arg, -1));
             case "SHOW_GRID": return service.showGrid();
+            case "SHOW_HELP": return service.showHelp();
             case "TAP_GRID": return service.tapGrid(arg);
             case "HIDE_OVERLAYS": service.hideOverlays(); return true;
-            case "SWIPE_UP": service.hideOverlays(); return service.swipe(.50f,.78f,.50f,.27f,420);
-            case "SWIPE_DOWN": service.hideOverlays(); return service.swipe(.50f,.27f,.50f,.78f,420);
-            case "SWIPE_LEFT": service.hideOverlays(); return service.swipe(.82f,.50f,.18f,.50f,420);
-            case "SWIPE_RIGHT": service.hideOverlays(); return service.swipe(.18f,.50f,.82f,.50f,420);
+            case "SCROLL": return service.scroll(arg);
+            case "SWIPE_UP": return service.scroll("down");
+            case "SWIPE_DOWN": return service.scroll("up");
+            case "SWIPE_LEFT": return service.scroll("left");
+            case "SWIPE_RIGHT": return service.scroll("right");
             case "VOLUME_UP": return service.volume(true);
             case "VOLUME_DOWN": return service.volume(false);
             default: return false;
@@ -125,45 +170,109 @@ public class PhoneControlService extends AccessibilityService {
         try { startActivity(launch); hideOverlays(); return true; } catch (Exception ignored) { return false; }
     }
 
-    private boolean tapText(String text, boolean longClick) {
-        return tapTextInternal(text, longClick, false);
+    private static final class MatchTarget {
+        final AccessibilityNodeInfo node;
+        final Rect bounds;
+        final String label;
+        final int score;
+        MatchTarget(AccessibilityNodeInfo node, Rect bounds, String label, int score) {
+            this.node=node; this.bounds=bounds; this.label=label; this.score=score;
+        }
     }
 
-    private boolean tapTextInternal(String text, boolean longClick, boolean confirmed) {
-        if (text == null || text.trim().isEmpty()) return false;
+    private boolean tapText(String text, boolean longClick) {
+        return tapTextInternal(text, longClick, false, 0);
+    }
+
+    private boolean tapTextOrdinal(String encoded) {
+        if (encoded == null || !encoded.contains("|")) return false;
+        String[] pieces = encoded.split("\\|", 2);
+        return tapTextInternal(pieces[1], false, false, parseInt(pieces[0], 1));
+    }
+
+    private List<MatchTarget> findMatches(String text) {
+        List<MatchTarget> out = new ArrayList<>();
+        if (text == null || text.trim().isEmpty()) return out;
         AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null) return false;
+        if (root == null) return out;
         String wanted = normalize(text);
         List<AccessibilityNodeInfo> all = new ArrayList<>();
         collectVisible(root, all, 0);
-        AccessibilityNodeInfo best = null;
-        int bestScore = 0;
         for (AccessibilityNodeInfo node : all) {
-            String label = searchableLabel(node);
-            int score = matchScore(wanted, normalize(label));
-            if (score <= bestScore) continue;
-            AccessibilityNodeInfo clickable = clickableTarget(node);
-            if (clickable != null) {
-                best = clickable;
-                bestScore = score;
-            }
-        }
-        if (best == null) return false;
-        final AccessibilityNodeInfo target = best;
-        String label = nodeLabel(target);
-        if (!confirmed && isRiskyLabel(label)) {
-            final String requestedText = text;
-            requestConfirmation("tap " + label, () -> tapTextInternal(requestedText, longClick, true));
-            return true;
-        }
-        boolean done = target.performAction(longClick ? AccessibilityNodeInfo.ACTION_LONG_CLICK : AccessibilityNodeInfo.ACTION_CLICK);
-        if (!done) {
+            int score = matchScore(wanted, normalize(searchableLabel(node)));
+            if (score < 70) continue;
+            AccessibilityNodeInfo target = clickableTarget(node);
+            if (target == null) continue;
             Rect bounds = new Rect();
             target.getBoundsInScreen(bounds);
-            if (!bounds.isEmpty()) done = swipeTap(bounds.centerX(), bounds.centerY());
+            if (bounds.isEmpty()) continue;
+            boolean duplicate = false;
+            for (MatchTarget existing : out) if (existing.bounds.equals(bounds)) { duplicate = true; break; }
+            if (!duplicate) out.add(new MatchTarget(target, new Rect(bounds), nodeLabel(target), score));
         }
-        if (done) hideOverlays();
+        java.util.Collections.sort(out, (a,b) -> {
+            int s = Integer.compare(b.score, a.score);
+            if (s != 0) return s;
+            int y = Integer.compare(a.bounds.top, b.bounds.top);
+            return y != 0 ? y : Integer.compare(a.bounds.left, b.bounds.left);
+        });
+        return out;
+    }
+
+    private boolean tapTextInternal(String text, boolean longClick, boolean confirmed, int ordinal) {
+        List<MatchTarget> matches = findMatches(text);
+        if (matches.isEmpty()) return false;
+        int bestScore = matches.get(0).score;
+        List<MatchTarget> best = new ArrayList<>();
+        for (MatchTarget m : matches) if (m.score == bestScore) best.add(m);
+
+        if (ordinal <= 0 && best.size() > 1) {
+            return showMatchingNumbers(best);
+        }
+        int index = ordinal > 0 ? ordinal - 1 : 0;
+        if (index < 0 || index >= best.size()) return false;
+        MatchTarget chosen = best.get(index);
+        if (!confirmed && isRiskyLabel(chosen.label)) {
+            final String requestedText=text;
+            final int requestedOrdinal=ordinal;
+            requestConfirmation("tap " + chosen.label, () -> tapTextInternal(requestedText,longClick,true,requestedOrdinal));
+            return true;
+        }
+        boolean done=chosen.node.performAction(longClick ? AccessibilityNodeInfo.ACTION_LONG_CLICK : AccessibilityNodeInfo.ACTION_CLICK);
+        if(!done) done=swipeTap(chosen.bounds.centerX(),chosen.bounds.centerY());
+        if(done) hideOverlays();
         return done;
+    }
+
+    private boolean showMatchingNumbers(List<MatchTarget> matches) {
+        hideOverlays();
+        numberedTargets.clear();
+        int i=1;
+        for(MatchTarget m:matches) {
+            if(i>20) break;
+            numberedTargets.put(i,new NumberedTarget(new Rect(m.bounds),m.label));
+            addLabel(i,m.bounds.centerX(),m.bounds.centerY());
+            i++;
+        }
+        scheduleOverlayDismiss();
+        return i>1;
+    }
+
+    private boolean findText(String text) {
+        List<MatchTarget> matches=findMatches(text);
+        if(matches.isEmpty()) return false;
+        MatchTarget m=matches.get(0);
+        highlightedTarget=new Rect(m.bounds);
+        showHighlight(m.bounds, m.label.isEmpty()?text:m.label);
+        return true;
+    }
+
+    private boolean tapHighlighted() {
+        if(highlightedTarget==null) return false;
+        Rect r=new Rect(highlightedTarget);
+        highlightedTarget=null;
+        hideOverlays();
+        return swipeTap(r.centerX(),r.centerY());
     }
 
     private void collectVisible(AccessibilityNodeInfo node, List<AccessibilityNodeInfo> out, int depth) {
@@ -278,15 +387,60 @@ public class PhoneControlService extends AccessibilityService {
         return done;
     }
 
+    private AccessibilityNodeInfo focusedEditable() {
+        AccessibilityNodeInfo root=getRootInActiveWindow();
+        if(root==null) return null;
+        AccessibilityNodeInfo focused=root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+        if(focused!=null && (focused.isEditable() || focused.isFocusable())) return focused;
+        List<AccessibilityNodeInfo> all=new ArrayList<>();
+        collectVisible(root,all,0);
+        for(AccessibilityNodeInfo node:all) if(node.isFocused() && node.isEditable()) return node;
+        return null;
+    }
+
     private boolean typeText(String value) {
-        if (value == null || value.isEmpty()) return false;
-        AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null) return false;
-        AccessibilityNodeInfo focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
-        if (focused == null) return false;
-        android.os.Bundle args = new android.os.Bundle();
-        args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value);
-        return focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args);
+        if(value==null || value.isEmpty()) return false;
+        AccessibilityNodeInfo focused=focusedEditable();
+        if(focused==null) return false;
+        CharSequence current=focused.getText();
+        String prefix=current==null ? "" : current.toString();
+        android.os.Bundle args=new android.os.Bundle();
+        args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, prefix + value);
+        return focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,args);
+    }
+
+    private boolean editText(String action) {
+        AccessibilityNodeInfo focused=focusedEditable();
+        if(focused==null) return false;
+        CharSequence currentCs=focused.getText();
+        String current=currentCs==null ? "" : currentCs.toString();
+        android.os.Bundle args=new android.os.Bundle();
+        switch(action==null?"":action) {
+            case "delete":
+                if(current.isEmpty()) return true;
+                args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,current.substring(0,current.length()-1));
+                return focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,args);
+            case "clear":
+                args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,"");
+                return focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,args);
+            case "select_all":
+                args.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT,0);
+                args.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT,current.length());
+                return focused.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION,args);
+            case "copy": return focused.performAction(AccessibilityNodeInfo.ACTION_COPY);
+            case "paste": return focused.performAction(AccessibilityNodeInfo.ACTION_PASTE);
+            case "undo":
+                return false;
+            default: return false;
+        }
+    }
+
+    private boolean keyAction(String action) {
+        if("send".equals(action)) return tapText("send",false);
+        AccessibilityNodeInfo focused=focusedEditable();
+        if(focused==null) return false;
+        if(android.os.Build.VERSION.SDK_INT>=30) return focused.performAction(AccessibilityNodeInfo.ACTION_IME_ENTER);
+        return false;
     }
 
     private void requestConfirmation(String description, Runnable action) {
@@ -486,6 +640,88 @@ public class PhoneControlService extends AccessibilityService {
     private boolean swipeTap(int x, int y) {
         Path path = new Path(); path.moveTo(x, y); path.lineTo(x + 1, y + 1);
         return dispatchGesture(new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(path, 0, 90)).build(), null, null);
+    }
+
+    private boolean backMultiple(int count) {
+        final int times=Math.max(1,Math.min(count,5));
+        boolean first=performGlobalAction(GLOBAL_ACTION_BACK);
+        for(int i=1;i<times;i++) {
+            final int delay=i*220;
+            handler.postDelayed(() -> performGlobalAction(GLOBAL_ACTION_BACK),delay);
+        }
+        return first;
+    }
+
+    private boolean scroll(String direction) {
+        hideOverlays();
+        if(direction==null) return false;
+        switch(direction) {
+            case "down": return swipe(.50f,.78f,.50f,.27f,420);
+            case "up": return swipe(.50f,.27f,.50f,.78f,420);
+            case "left": return swipe(.82f,.50f,.18f,.50f,420);
+            case "right": return swipe(.18f,.50f,.82f,.50f,420);
+            case "down_small": return swipe(.50f,.64f,.50f,.42f,280);
+            case "up_small": return swipe(.50f,.42f,.50f,.64f,280);
+            case "down_half": return swipe(.50f,.72f,.50f,.38f,340);
+            case "up_half": return swipe(.50f,.38f,.50f,.72f,340);
+            case "top": return multiSwipe(false);
+            case "bottom": return multiSwipe(true);
+            default: return false;
+        }
+    }
+
+    private boolean multiSwipe(boolean down) {
+        boolean first=down ? swipe(.50f,.82f,.50f,.18f,300) : swipe(.50f,.18f,.50f,.82f,300);
+        for(int i=1;i<6;i++) {
+            final int delay=i*340;
+            handler.postDelayed(() -> {
+                if(down) swipe(.50f,.82f,.50f,.18f,300);
+                else swipe(.50f,.18f,.50f,.82f,300);
+            },delay);
+        }
+        return first;
+    }
+
+    private boolean showHelp() {
+        hideOverlays();
+        if(windowManager==null) return false;
+        TextView help=new TextView(this);
+        help.setText("VOICE COMMANDS\n\nTap <word> • Find <word> • Tap it\nTap first/second <word> • Show numbers • Show grid\nTap top left/center/right, center left/center/right, bottom left/center/right\nTap search bar • Tap text field • Type <text>\nDelete that • Clear text • Select all • Copy • Paste • Enter • Send\nScroll up/down/a little/halfway/to top/to bottom\nHome • Back • Back 2 • Recents • Notifications • Quick settings\nRepeat that • Undo • Open <app> • Read screen • Hide help");
+        help.setTextColor(Color.WHITE);
+        help.setTextSize(17);
+        help.setPadding(dp(20),dp(20),dp(20),dp(20));
+        help.setBackgroundColor(Color.argb(235,25,25,25));
+        WindowManager.LayoutParams p=new WindowManager.LayoutParams(
+                Math.min(getResources().getDisplayMetrics().widthPixels-dp(32),dp(560)),
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE|WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT);
+        p.gravity=Gravity.CENTER;
+        try { windowManager.addView(help,p); labels.add(help); scheduleOverlayDismiss(); return true; }
+        catch(Exception ignored){ return false; }
+    }
+
+    private void showHighlight(Rect bounds,String labelText) {
+        hideOverlays();
+        highlightedTarget=new Rect(bounds);
+        if(windowManager==null) return;
+        TextView label=new TextView(this);
+        label.setText("  " + labelText + "  ");
+        label.setTextColor(Color.WHITE);
+        label.setTextSize(15);
+        label.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
+        label.setGravity(Gravity.CENTER);
+        label.setBackgroundColor(Color.argb(220,20,110,220));
+        WindowManager.LayoutParams p=new WindowManager.LayoutParams(
+                Math.max(bounds.width(),dp(90)),Math.max(bounds.height(),dp(38)),
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE|WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT);
+        p.gravity=Gravity.TOP|Gravity.LEFT;
+        p.x=Math.max(0,bounds.left);
+        p.y=Math.max(0,bounds.top);
+        try { windowManager.addView(label,p); labels.add(label); scheduleOverlayDismiss(); } catch(Exception ignored){}
     }
 
     private boolean volume(boolean up) {
