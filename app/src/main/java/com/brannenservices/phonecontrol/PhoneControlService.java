@@ -129,6 +129,7 @@ public class PhoneControlService extends AccessibilityService {
             case "TAP_GRID": return service.tapGrid(arg);
             case "HIDE_OVERLAYS": service.hideOverlays(); return true;
             case "SCROLL": return service.scroll(arg);
+            case "ZOOM": return service.zoom(arg);
             case "SWIPE_UP": return service.scroll("down");
             case "SWIPE_DOWN": return service.scroll("up");
             case "SWIPE_LEFT": return service.scroll("left");
@@ -689,13 +690,39 @@ public class PhoneControlService extends AccessibilityService {
         return first;
     }
 
+    private boolean zoom(String direction) {
+        if (direction == null || android.os.Build.VERSION.SDK_INT < 24) return false;
+        try {
+            android.accessibilityservice.AccessibilityService.MagnificationController controller = getMagnificationController();
+            float current = controller.getScale();
+            float target = current;
+            if ("in".equals(direction)) target = Math.min(8.0f, current + 0.10f);
+            else if ("out".equals(direction)) target = Math.max(1.0f, current - 0.10f);
+            else return false;
+            if (Math.abs(target - current) < 0.001f) return true;
+            return controller.setScaleAndCenter(target, Float.NaN, Float.NaN, true);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private boolean showHelp() {
         hideOverlays();
         if(windowManager==null) return false;
         TextView help=new TextView(this);
-        help.setText("VOICE COMMANDS\n\nTap <word> • Find <word> • Tap it\nTap first/second <word> • Show numbers • Show grid\nTap top left/center/right, center left/center/right, bottom left/center/right\nTap search bar • Tap text field • Type <text>\nDelete that • Clear text • Select all • Copy • Paste • Enter • Send\nScroll up/down/a little/halfway/to top/to bottom\nHome • Back • Back 2 • Recents • Notifications • Quick settings\nRepeat that • Undo • Open <app> • Read screen • Hide help");
+        help.setText("VOICE COMMANDS\n\n" +
+                "HELP: Help • Show commands • Hide help\n" +
+                "TAP: Tap <word> • Find <word> • Tap it • Tap first/second/third <word>\n" +
+                "TARGETING: Show numbers • Tap number <#> • Show grid • Tap grid <row> <col>\n" +
+                "SCREEN AREAS: Tap top left/center/right • Tap left/center/right • Tap bottom left/center/right\n" +
+                "FIELDS: Tap search bar • Tap text field • Type <text>\n" +
+                "EDIT: Delete that • Clear text • Select all • Copy • Paste • Enter • Send • Undo\n" +
+                "MOVE: Scroll up/down/left/right • Go up/down/left/right • Scroll a little • Scroll halfway • Scroll to top/bottom\n" +
+                "ZOOM: Zoom in (+10%) • Zoom out (-10%)\n" +
+                "PHONE: Home • Back • Back <#> screens • Recents • Notifications • Quick settings • Volume up/down\n" +
+                "OTHER: Repeat that • Open <app> • Switch to <app> • Read screen • Stop listening");
         help.setTextColor(Color.WHITE);
-        help.setTextSize(17);
+        help.setTextSize(14);
         help.setPadding(dp(20),dp(20),dp(20),dp(20));
         help.setBackgroundColor(Color.argb(235,25,25,25));
         WindowManager.LayoutParams p=new WindowManager.LayoutParams(
