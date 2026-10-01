@@ -156,6 +156,8 @@ public class VoiceControlService extends Service {
         else if ("SHOW_NUMBERS".equals(result.action) && !done) updateNotification("No numbered controls found on this screen");
         else if ("OPEN_NAMED_APP".equals(result.action) && !done) updateNotification("Couldn't find app: " + result.argument);
         else if (("TAP_TEXT".equals(result.action) || "LONG_PRESS_TEXT".equals(result.action)) && !done) updateNotification("Couldn't find: " + result.argument);
+        else if ("FOCUS_FIELD".equals(result.action) && !done) updateNotification("Couldn't find a " + result.argument + " field");
+        else if ("TAP_REGION".equals(result.action) && !done) updateNotification("Couldn't tap that screen region");
         else if ("TYPE_TEXT".equals(result.action) && !done) updateNotification("No text field is selected");
         else updateNotification("Command: " + result.action.toLowerCase(Locale.US).replace('_', ' '));
     }
