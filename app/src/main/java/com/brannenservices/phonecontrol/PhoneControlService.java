@@ -700,7 +700,7 @@ public class PhoneControlService extends AccessibilityService {
             else if ("out".equals(direction)) target = Math.max(1.0f, current - 0.10f);
             else return false;
             if (Math.abs(target - current) < 0.001f) return true;
-            return controller.setScaleAndCenter(target, Float.NaN, Float.NaN, true);
+            return controller.setScale(target, true);
         } catch (Exception ignored) {
             return false;
         }
