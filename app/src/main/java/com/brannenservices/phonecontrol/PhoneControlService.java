@@ -446,7 +446,7 @@ public class PhoneControlService extends AccessibilityService {
         if("send".equals(action)) return tapText("send",false);
         AccessibilityNodeInfo focused=focusedEditable();
         if(focused==null) return false;
-        if(android.os.Build.VERSION.SDK_INT>=30) return focused.performAction(AccessibilityNodeInfo.ACTION_IME_ENTER);
+        if(android.os.Build.VERSION.SDK_INT>=30) return focused.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId());
         return false;
     }
 
