@@ -2,7 +2,7 @@ name: Build Phone Control Prototype APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, phone-control-prototype ]
+    branches: [ main ]
     paths: [ "app/**", "*.gradle.kts", "gradle.properties", ".github/workflows/android.yml" ]
 jobs:
   android:
@@ -19,9 +19,9 @@ jobs:
       - name: Build APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Rename APK
-        run: mkdir -p dist && cp app/build/outputs/apk/debug/app-debug.apk dist/PhoneControlPrototype-v0.1.0.apk
+        run: mkdir -p dist && cp app/build/outputs/apk/debug/app-debug.apk dist/PhoneControlPrototype-v0.2.0.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PhoneControlPrototype-v0.1.0-Android
-          path: dist/PhoneControlPrototype-v0.1.0.apk
+          name: PhoneControlPrototype-v0.2.0-Android
+          path: dist/PhoneControlPrototype-v0.2.0.apk
           if-no-files-found: error
