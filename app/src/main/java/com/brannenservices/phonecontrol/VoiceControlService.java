@@ -37,6 +37,20 @@ public class VoiceControlService extends Service {
     private boolean readingScreen;
     private int retryDelayMs = 350;
     private TextToSpeech tts;
+    private long lastRecognizerActivity=0L;
+    private final Runnable watchdog=new Runnable(){
+        @Override public void run(){
+            if(active && !readingScreen){
+                long now=android.os.SystemClock.elapsedRealtime();
+                if(lastRecognizerActivity>0 && now-lastRecognizerActivity>20000){
+                    try { if(recognizer!=null) recognizer.cancel(); } catch(Exception ignored){}
+                    restarting=false;
+                    startListening();
+                }
+            }
+            if(active) handler.postDelayed(this,10000);
+        }
+    };
 
     public static boolean isRunning() { return running; }
     public static void announceConfirmation(String description) {
@@ -69,7 +83,10 @@ public class VoiceControlService extends Service {
         current = this;
         if (Build.VERSION.SDK_INT >= 29) startForeground(7, notification("Listening for commands"), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
         else startForeground(7, notification("Listening for commands"));
+        lastRecognizerActivity=android.os.SystemClock.elapsedRealtime();
         startListening();
+        handler.removeCallbacks(watchdog);
+        handler.postDelayed(watchdog,10000);
         return START_STICKY;
     }
 
@@ -117,15 +134,22 @@ public class VoiceControlService extends Service {
         speechIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
         if (recognizer == null) return;
         recognizer.setRecognitionListener(new RecognitionListener() {
-            @Override public void onReadyForSpeech(Bundle params) { }
-            @Override public void onBeginningOfSpeech() { }
+            @Override public void onReadyForSpeech(Bundle params) { lastRecognizerActivity=android.os.SystemClock.elapsedRealtime(); }
+            @Override public void onBeginningOfSpeech() { lastRecognizerActivity=android.os.SystemClock.elapsedRealtime(); }
             @Override public void onRmsChanged(float rmsdB) { }
             @Override public void onBufferReceived(byte[] buffer) { }
-            @Override public void onEndOfSpeech() { }
-            @Override public void onError(int error) { scheduleRestart(); }
+            @Override public void onEndOfSpeech() { lastRecognizerActivity=android.os.SystemClock.elapsedRealtime(); }
+            @Override public void onError(int error) { lastRecognizerActivity=android.os.SystemClock.elapsedRealtime(); scheduleRestart(); }
             @Override public void onResults(Bundle results) {
+                lastRecognizerActivity=android.os.SystemClock.elapsedRealtime();
                 ArrayList<String> candidates = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                if (candidates != null && !candidates.isEmpty()) handle(candidates.get(0));
+                if (candidates != null && !candidates.isEmpty()) {
+                    String chosen=candidates.get(0);
+                    for(String candidate:candidates){
+                        if(VoiceCommandParser.parse(candidate)!=null){ chosen=candidate; break; }
+                    }
+                    handle(chosen);
+                }
                 retryDelayMs = 350;
                 scheduleRestart();
             }
@@ -196,7 +220,7 @@ public class VoiceControlService extends Service {
             scheduleRestart();
             return;
         }
-        try { restarting = false; recognizer.startListening(speechIntent); }
+        try { restarting = false; lastRecognizerActivity=android.os.SystemClock.elapsedRealtime(); recognizer.startListening(speechIntent); }
         catch (Exception ignored) { scheduleRestart(); }
     }
 
@@ -211,6 +235,7 @@ public class VoiceControlService extends Service {
     @Override public void onDestroy() {
         active = false;
         running = false;
+        handler.removeCallbacks(watchdog);
         handler.removeCallbacksAndMessages(null);
         if (recognizer != null) {
             try { recognizer.cancel(); } catch (Exception ignored) { }
