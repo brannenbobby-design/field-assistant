@@ -81,7 +81,9 @@ final class VoiceCommandParser {
             if(matches(value,candidates)) return Result.action("TAP_REGION",group[0]);
         }
 
-        if(matches(value,"tap search bar","tap search box","select search bar","select search box","open search bar","focus search bar","hit search","hit the search bar","press search bar","click search bar"))
+        if(matches(value,"search","search now","hit search","press search","click search"))
+            return Result.action("SMART_SEARCH",null);
+        if(matches(value,"tap search bar","tap search box","select search bar","select search box","open search bar","focus search bar","hit the search bar","press search bar","click search bar"))
             return Result.action("FOCUS_FIELD","search");
         if(matches(value,"tap text bar","tap text box","tap text field","select text bar","select text box","select text field","focus text field","hit text box","press message box","tap message box"))
             return Result.action("FOCUS_FIELD","text");
@@ -92,6 +94,9 @@ final class VoiceCommandParser {
         if(matches(value,"copy","copy that","copy text")) return Result.action("EDIT_TEXT","copy");
         if(matches(value,"paste","paste that","paste text")) return Result.action("EDIT_TEXT","paste");
         if(matches(value,"enter","press enter","hit enter","submit with enter")) return Result.action("KEY_ACTION","enter");
+        if(matches(value,"go","press go","hit go")) return Result.action("KEY_ACTION","go");
+        if(matches(value,"done","press done","hit done")) return Result.action("KEY_ACTION","done");
+        if(matches(value,"next","press next","hit next")) return Result.action("KEY_ACTION","next");
         if(matches(value,"send","send it","hit send","press send")) return Result.action("KEY_ACTION","send");
 
         if(value.matches("(?:tap|click|press)(?: number)? \\d+")) return Result.action("TAP_NUMBER",lastNumber(value));
