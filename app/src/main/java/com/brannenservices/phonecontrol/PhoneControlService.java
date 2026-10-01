@@ -40,7 +40,7 @@ public class PhoneControlService extends AccessibilityService {
   if(name==null)return false;String n=name.toLowerCase(Locale.US).trim();String pkg=APPS.get(n);
   if(pkg!=null&&openApp(pkg))return true;
   PackageManager pm=getPackageManager();
-  for(android.content.pm.ApplicationInfo ai:pm.getInstalledApplications(0)){CharSequence l=pm.getApplicationLabel(ai);if(l!=null&&l.toString().equalsIgnoreCase(name.trim())&&openApp(ai.packageName))return true;}
+  Intent launcher=new Intent(Intent.ACTION_MAIN);launcher.addCategory(Intent.CATEGORY_LAUNCHER);for(android.content.pm.ResolveInfo ri:pm.queryIntentActivities(launcher,0)){CharSequence l=ri.loadLabel(pm);if(l!=null&&l.toString().equalsIgnoreCase(name.trim())){Intent i=new Intent(Intent.ACTION_MAIN);i.addCategory(Intent.CATEGORY_LAUNCHER);i.setClassName(ri.activityInfo.packageName,ri.activityInfo.name);i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);startActivity(i);return true;}}
   return false;
  }
  private boolean openApp(String pkg){if(pkg==null||pkg.isEmpty())return false;Intent i=getPackageManager().getLaunchIntentForPackage(pkg);if(i==null)return false;i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);startActivity(i);return true;}
