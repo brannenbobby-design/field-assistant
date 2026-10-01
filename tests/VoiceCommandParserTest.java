@@ -33,7 +33,11 @@ public final class VoiceCommandParserTest {
         expect("paste", "EDIT_TEXT", "paste");
         expect("press enter", "KEY_ACTION", "enter");
         expect("send it", "KEY_ACTION", "send");
-        expect("hit search", "FOCUS_FIELD", "search");
+        expect("hit search", "SMART_SEARCH", null);
+        expect("search", "SMART_SEARCH", null);
+        expect("go", "KEY_ACTION", "go");
+        expect("done", "KEY_ACTION", "done");
+        expect("next", "KEY_ACTION", "next");
         expect("help", "SHOW_HELP", null);
         expect("go left", "SCROLL", "left");
         expect("go right", "SCROLL", "right");
@@ -44,7 +48,7 @@ public final class VoiceCommandParserTest {
         if (VoiceCommandParser.parse("random unrelated sentence") != null) throw new AssertionError("unknown phrase must not trigger an action");
         if (!VoiceCommandParser.parse("read this screen").readScreen) throw new AssertionError("screen reading phrase not recognized");
         if (!VoiceCommandParser.parse("stop listening").stopListening) throw new AssertionError("stop phrase not recognized");
-        System.out.println("VoiceCommandParserTest: 42 checks passed");
+        System.out.println("VoiceCommandParserTest: 46 checks passed");
     }
 
     private static void expect(String phrase, String action, String argument) {
