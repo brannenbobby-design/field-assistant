@@ -27,9 +27,9 @@ jobs:
       - name: Build APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Rename APK
-        run: mkdir -p dist && cp app/build/outputs/apk/debug/app-debug.apk dist/BrannenVoiceControl-v0.8.0.apk
+        run: mkdir -p dist && cp app/build/outputs/apk/debug/app-debug.apk dist/BrannenVoiceControl-v1.1.0.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: BrannenVoiceControl-v0.8.0-Android
-          path: dist/BrannenVoiceControl-v0.8.0.apk
+          name: BrannenVoiceControl-v1.1.0-Android
+          path: dist/BrannenVoiceControl-v1.1.0.apk
           if-no-files-found: error
