@@ -1,1 +1,4 @@
-<resources><string name="app_name">Phone Control Prototype</string><string name="accessibility_desc">Executes user-authorized phone control commands while the master switch is on.</string></resources>
+<resources>
+    <string name="app_name">Brannen Voice Control</string>
+    <string name="accessibility_desc">Carries out spoken phone commands only while the master Phone Control switch is on.</string>
+</resources>

@@ -2,8 +2,11 @@ name: Build Phone Control Prototype APK
 on:
   workflow_dispatch:
   push:
+    branches: [ "**" ]
+    paths: [ "app/**", "tests/**", "*.gradle.kts", "gradle.properties", ".github/workflows/android.yml" ]
+  pull_request:
     branches: [ main ]
-    paths: [ "app/**", "*.gradle.kts", "gradle.properties", ".github/workflows/android.yml" ]
+    paths: [ "app/**", "tests/**", "*.gradle.kts", "gradle.properties", ".github/workflows/android.yml" ]
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -16,12 +19,17 @@ jobs:
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0"'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.9" }
+      - name: Test voice command parsing
+        run: |
+          mkdir -p build/voice-parser-tests
+          javac -d build/voice-parser-tests app/src/main/java/com/brannenservices/phonecontrol/VoiceCommandParser.java tests/VoiceCommandParserTest.java
+          java -cp build/voice-parser-tests com.brannenservices.phonecontrol.VoiceCommandParserTest
       - name: Build APK
         run: gradle --no-daemon :app:assembleDebug
       - name: Rename APK
-        run: mkdir -p dist && cp app/build/outputs/apk/debug/app-debug.apk dist/PhoneControlPrototype-v0.7.0.apk
+        run: mkdir -p dist && cp app/build/outputs/apk/debug/app-debug.apk dist/BrannenVoiceControl-v0.8.0.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: PhoneControlPrototype-v0.7.0-Android
-          path: dist/PhoneControlPrototype-v0.7.0.apk
+          name: BrannenVoiceControl-v0.8.0-Android
+          path: dist/BrannenVoiceControl-v0.8.0.apk
           if-no-files-found: error

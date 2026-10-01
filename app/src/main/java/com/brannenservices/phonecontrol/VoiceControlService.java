@@ -1,52 +1,223 @@
 package com.brannenservices.phonecontrol;
 
-import android.app.*;
-import android.content.*;
-import android.os.*;
-import android.speech.*;
-import java.util.*;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.Intent;
+import android.content.pm.ServiceInfo;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import java.util.ArrayList;
+import java.util.Locale;
 
+/** Explicitly enabled, notification-visible speech listener using Android's speech engine. */
 public class VoiceControlService extends Service {
- public static final String ACTION_START="com.brannenservices.phonecontrol.START_VOICE";
- public static final String ACTION_STOP="com.brannenservices.phonecontrol.STOP_VOICE";
- private static final String CHANNEL="voice_control";
- private SpeechRecognizer recognizer; private Intent speechIntent;
- private boolean active=false,restarting=false;
+    public static final String ACTION_START = "com.brannenservices.phonecontrol.START_VOICE";
+    public static final String ACTION_STOP = "com.brannenservices.phonecontrol.STOP_VOICE";
+    private static final String CHANNEL = "voice_control";
+    private static final String PREFS = "voice_status";
+    private static final String LAST_HEARD = "last_heard";
+    private static volatile boolean running;
+    private static volatile VoiceControlService current;
 
- @Override public void onCreate(){super.onCreate();createChannel();setupSpeech();}
- @Override public int onStartCommand(Intent i,int flags,int id){
-  if(i!=null&&ACTION_STOP.equals(i.getAction())){stopSelf();return START_NOT_STICKY;}
-  active=true; startForeground(7,notification("Listening for phone-control commands")); startListening(); return START_STICKY;
- }
- private void createChannel(){if(Build.VERSION.SDK_INT>=26){NotificationChannel c=new NotificationChannel(CHANNEL,"Voice Control",NotificationManager.IMPORTANCE_LOW);c.setDescription("Keeps hands-free phone control listening while other apps are open.");getSystemService(NotificationManager.class).createNotificationChannel(c);}}
- private Notification notification(String text){
-  Intent open=new Intent(this,MainActivity.class); PendingIntent p=PendingIntent.getActivity(this,0,open,PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
-  Intent stop=new Intent(this,VoiceControlService.class).setAction(ACTION_STOP); PendingIntent sp=PendingIntent.getService(this,1,stop,PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
-  return new Notification.Builder(this,CHANNEL).setSmallIcon(android.R.drawable.ic_btn_speak_now).setContentTitle("Phone Control voice active").setContentText(text).setOngoing(true).setContentIntent(p).addAction(new Notification.Action.Builder(null,"Stop",sp).build()).build();
- }
- private void setupSpeech(){
-  recognizer=SpeechRecognizer.createSpeechRecognizer(this); speechIntent=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-  speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM); speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,Locale.getDefault()); speechIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS,false);
-  recognizer.setRecognitionListener(new RecognitionListener(){
-   public void onReadyForSpeech(Bundle b){} public void onBeginningOfSpeech(){} public void onRmsChanged(float r){} public void onBufferReceived(byte[] b){} public void onEndOfSpeech(){}
-   public void onError(int e){if(active)restart();}
-   public void onResults(Bundle b){ArrayList<String> r=b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);if(r!=null&&!r.isEmpty())handle(r.get(0));if(active)restart();}
-   public void onPartialResults(Bundle b){} public void onEvent(int t,Bundle b){}
-  });
- }
- private void handle(String raw){
-  if(!ControlPrefs.enabled(this))return; String s=raw.toLowerCase(Locale.US).trim(); String c=null,a=null;
-  if(s.equals("home")||s.equals("go home"))c="HOME"; else if(s.equals("back")||s.equals("go back"))c="BACK";
-  else if(s.equals("recents")||s.equals("recent apps")||s.equals("open recents"))c="RECENTS";
-  else if(s.equals("notifications")||s.equals("open notifications"))c="NOTIFICATIONS";
-  else if(s.equals("settings")||s.equals("open settings")){c="OPEN_APP";a="com.android.settings";}
-  else if(s.startsWith("open ")&&s.length()>5){c="OPEN_NAMED_APP";a=s.substring(5).trim();}
-  else if(s.equals("scroll down")||s.equals("swipe up"))c="SWIPE_UP"; else if(s.equals("scroll up")||s.equals("swipe down"))c="SWIPE_DOWN";
-  else if(s.equals("swipe left"))c="SWIPE_LEFT"; else if(s.equals("swipe right"))c="SWIPE_RIGHT";
-  if(c!=null)PhoneControlService.runCommand(c,a);
- }
- private void startListening(){if(!active||recognizer==null)return;try{recognizer.startListening(speechIntent);}catch(Exception e){restart();}}
- private void restart(){if(restarting||!active)return;restarting=true;new Handler(Looper.getMainLooper()).postDelayed(()->{restarting=false;startListening();},350);}
- @Override public void onDestroy(){active=false;if(recognizer!=null){try{recognizer.cancel();}catch(Exception ignored){}recognizer.destroy();}super.onDestroy();}
- @Override public IBinder onBind(Intent i){return null;}
+    private SpeechRecognizer recognizer;
+    private Intent speechIntent;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean active;
+    private boolean restarting;
+    private boolean readingScreen;
+    private int retryDelayMs = 350;
+    private TextToSpeech tts;
+
+    public static boolean isRunning() { return running; }
+    public static void announceConfirmation(String description) {
+        VoiceControlService service = current;
+        if (service != null) service.updateNotification("Confirm action: " + description + ". Say confirm or cancel.");
+    }
+    public static String lastHeard(android.content.Context context) {
+        return context.getSharedPreferences(PREFS, 0).getString(LAST_HEARD, "");
+    }
+
+    @Override public void onCreate() {
+        super.onCreate();
+        createChannel();
+        setupSpeech();
+    }
+
+    @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && ACTION_STOP.equals(intent.getAction())) {
+            active = false;
+            running = false;
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        if (!ControlPrefs.enabled(this)) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        active = true;
+        running = true;
+        current = this;
+        if (Build.VERSION.SDK_INT >= 29) startForeground(7, notification("Listening for commands"), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+        else startForeground(7, notification("Listening for commands"));
+        startListening();
+        return START_STICKY;
+    }
+
+    private void createChannel() {
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL, "Voice Control", NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription("Visible notification while hands-free voice control is listening.");
+            getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        }
+    }
+
+    private Notification notification(String message) {
+        PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class),
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent stopIntent = new Intent(this, VoiceControlService.class).setAction(ACTION_STOP);
+        PendingIntent stop = PendingIntent.getService(this, 1, stopIntent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification.Builder builder = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
+        return builder.setSmallIcon(android.R.drawable.ic_btn_speak_now)
+                .setContentTitle("Brannen Voice Control")
+                .setContentText(message)
+                .setOngoing(true)
+                .setContentIntent(open)
+                .addAction(new Notification.Action.Builder(null, "Stop listening", stop).build())
+                .build();
+    }
+
+    private void updateNotification(String message) {
+        getSystemService(NotificationManager.class).notify(7, notification(message));
+    }
+
+    private void setupSpeech() {
+        try {
+            if (Build.VERSION.SDK_INT >= 31 && SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+                recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
+            } else if (SpeechRecognizer.isRecognitionAvailable(this)) {
+                recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            }
+        } catch (Exception ignored) {
+            try { recognizer = SpeechRecognizer.createSpeechRecognizer(this); } catch (Exception ignoredAgain) { recognizer = null; }
+        }
+        speechIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        speechIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
+        speechIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+        if (recognizer == null) return;
+        recognizer.setRecognitionListener(new RecognitionListener() {
+            @Override public void onReadyForSpeech(Bundle params) { }
+            @Override public void onBeginningOfSpeech() { }
+            @Override public void onRmsChanged(float rmsdB) { }
+            @Override public void onBufferReceived(byte[] buffer) { }
+            @Override public void onEndOfSpeech() { }
+            @Override public void onError(int error) { scheduleRestart(); }
+            @Override public void onResults(Bundle results) {
+                ArrayList<String> candidates = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (candidates != null && !candidates.isEmpty()) handle(candidates.get(0));
+                retryDelayMs = 350;
+                scheduleRestart();
+            }
+            @Override public void onPartialResults(Bundle partialResults) { }
+            @Override public void onEvent(int eventType, Bundle params) { }
+        });
+    }
+
+    private void handle(String raw) {
+        if (raw == null || !active) return;
+        getSharedPreferences(PREFS, 0).edit().putString(LAST_HEARD, "“" + raw.trim() + "”").apply();
+        if (!ControlPrefs.enabled(this)) { updateNotification("Phone Control is off"); return; }
+        VoiceCommandParser.Result result = VoiceCommandParser.parse(raw);
+        if (result == null) { updateNotification("Heard: " + raw.trim()); return; }
+        if (result.stopListening) {
+            updateNotification("Voice control stopped by command");
+            active = false;
+            running = false;
+            stopSelf();
+            return;
+        }
+        if (result.readScreen) {
+            readScreenAloud();
+            return;
+        }
+        boolean done = PhoneControlService.runCommand(result.action, result.argument);
+        if (PhoneControlService.confirmationPending()) updateNotification("Action held. Say confirm or cancel.");
+        else if ("SHOW_NUMBERS".equals(result.action) && !done) updateNotification("No numbered controls found on this screen");
+        else if ("OPEN_NAMED_APP".equals(result.action) && !done) updateNotification("Couldn't find app: " + result.argument);
+        else if (("TAP_TEXT".equals(result.action) || "LONG_PRESS_TEXT".equals(result.action)) && !done) updateNotification("Couldn't find: " + result.argument);
+        else if ("TYPE_TEXT".equals(result.action) && !done) updateNotification("No text field is selected");
+        else updateNotification("Command: " + result.action.toLowerCase(Locale.US).replace('_', ' '));
+    }
+
+    private void readScreenAloud() {
+        String screen = PhoneControlService.readScreen();
+        if (screen.isEmpty()) screen = "I can't read text on this screen.";
+        readingScreen = true;
+        if (recognizer != null) try { recognizer.cancel(); } catch (Exception ignored) { }
+        final String text = screen;
+        if (tts == null) {
+            tts = new TextToSpeech(this, status -> {
+                if (status == TextToSpeech.SUCCESS) {
+                    tts.setLanguage(Locale.getDefault());
+                    speak(text);
+                } else { readingScreen = false; scheduleRestart(); }
+            });
+        } else speak(text);
+        updateNotification("Reading screen aloud");
+    }
+
+    private void speak(String text) {
+        if (tts == null) return;
+        tts.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener() {
+            @Override public void onStart(String id) { }
+            @Override public void onDone(String id) { readingScreen = false; scheduleRestart(); }
+            @Override public void onError(String id) { readingScreen = false; scheduleRestart(); }
+        });
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "screen_read");
+    }
+
+    private void startListening() {
+        if (!active) return;
+        if (recognizer == null) {
+            updateNotification("Speech recognition isn't available on this phone");
+            scheduleRestart();
+            return;
+        }
+        try { restarting = false; recognizer.startListening(speechIntent); }
+        catch (Exception ignored) { scheduleRestart(); }
+    }
+
+    private void scheduleRestart() {
+        if (restarting || !active || readingScreen) return;
+        restarting = true;
+        int delay = retryDelayMs;
+        retryDelayMs = Math.min(retryDelayMs * 2, 5000);
+        handler.postDelayed(() -> { restarting = false; startListening(); }, delay);
+    }
+
+    @Override public void onDestroy() {
+        active = false;
+        running = false;
+        handler.removeCallbacksAndMessages(null);
+        if (recognizer != null) {
+            try { recognizer.cancel(); } catch (Exception ignored) { }
+            recognizer.destroy();
+        }
+        if (tts != null) { tts.stop(); tts.shutdown(); }
+        if (current == this) current = null;
+        super.onDestroy();
+    }
+
+    @Override public IBinder onBind(Intent intent) { return null; }
 }
