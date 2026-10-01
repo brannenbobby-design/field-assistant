@@ -42,6 +42,24 @@ final class VoiceCommandParser {
         if (matches(value, "swipe right", "move right")) return Result.action("SWIPE_RIGHT", null);
         if (matches(value, "volume up", "turn volume up", "louder")) return Result.action("VOLUME_UP", null);
         if (matches(value, "volume down", "turn volume down", "quieter")) return Result.action("VOLUME_DOWN", null);
+
+        if (matches(value, "tap top left", "press top left", "click top left")) return Result.action("TAP_REGION", "top_left");
+        if (matches(value, "tap top center", "tap top middle", "press top center", "click top center")) return Result.action("TAP_REGION", "top_center");
+        if (matches(value, "tap top right", "press top right", "click top right")) return Result.action("TAP_REGION", "top_right");
+        if (matches(value, "tap left", "tap center left", "tap middle left", "press left", "click left")) return Result.action("TAP_REGION", "center_left");
+        if (matches(value, "tap center", "tap middle", "press center", "click center")) return Result.action("TAP_REGION", "center");
+        if (matches(value, "tap right", "tap center right", "tap middle right", "press right", "click right")) return Result.action("TAP_REGION", "center_right");
+        if (matches(value, "tap bottom left", "press bottom left", "click bottom left")) return Result.action("TAP_REGION", "bottom_left");
+        if (matches(value, "tap bottom center", "tap bottom middle", "press bottom center", "click bottom center")) return Result.action("TAP_REGION", "bottom_center");
+        if (matches(value, "tap bottom right", "press bottom right", "click bottom right")) return Result.action("TAP_REGION", "bottom_right");
+
+        if (matches(value, "tap search bar", "tap search box", "select search bar", "select search box", "open search bar", "focus search bar")) {
+            return Result.action("FOCUS_FIELD", "search");
+        }
+        if (matches(value, "tap text bar", "tap text box", "tap text field", "select text bar", "select text box", "select text field", "focus text field")) {
+            return Result.action("FOCUS_FIELD", "text");
+        }
+
         if (value.matches("(?:tap|click|press)(?: number)? \\d+")) return Result.action("TAP_NUMBER", lastNumber(value));
         if (value.matches("(?:long press|press and hold|hold)(?: on)? .+")) return Result.action("LONG_PRESS_TEXT", value.replaceFirst("^(long press|press and hold|hold)( on)? ", "").replaceFirst("^the ", "").trim());
         java.util.regex.Matcher grid = java.util.regex.Pattern.compile("^(?:tap|click|press) grid (\\d+) ?[, ] ?(\\d+)$").matcher(value);
