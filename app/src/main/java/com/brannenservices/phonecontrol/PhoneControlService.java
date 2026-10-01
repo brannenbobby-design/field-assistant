@@ -72,6 +72,8 @@ public class PhoneControlService extends AccessibilityService {
             case "QUICK_SETTINGS": service.hideOverlays(); return service.performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS);
             case "OPEN_NAMED_APP": return service.openNamedApp(arg);
             case "TAP_TEXT": return service.tapText(arg, false);
+            case "TAP_REGION": return service.tapRegion(arg);
+            case "FOCUS_FIELD": return service.focusField(arg);
             case "LONG_PRESS_TEXT": return service.tapText(arg, true);
             case "TYPE_TEXT": return service.typeText(arg);
             case "CONFIRM": return service.confirmPendingAction();
@@ -131,25 +133,149 @@ public class PhoneControlService extends AccessibilityService {
         if (text == null || text.trim().isEmpty()) return false;
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return false;
-        List<AccessibilityNodeInfo> matches = root.findAccessibilityNodeInfosByText(text.trim());
-        if (matches == null) return false;
-        for (AccessibilityNodeInfo node : matches) {
-            AccessibilityNodeInfo target = node;
-            while (target != null) {
-                if (target.isVisibleToUser() && target.isClickable()) {
-                    if (!confirmed && isRiskyLabel(nodeLabel(target))) {
-                        final String requestedText = text;
-                        requestConfirmation("tap " + nodeLabel(target), () -> tapTextInternal(requestedText, longClick, true));
-                        return true;
-                    }
-                    boolean done = target.performAction(longClick ? AccessibilityNodeInfo.ACTION_LONG_CLICK : AccessibilityNodeInfo.ACTION_CLICK);
-                    if (done) hideOverlays();
-                    return done;
-                }
-                target = target.getParent();
+        String wanted = normalize(text);
+        List<AccessibilityNodeInfo> all = new ArrayList<>();
+        collectVisible(root, all, 0);
+        AccessibilityNodeInfo best = null;
+        int bestScore = 0;
+        for (AccessibilityNodeInfo node : all) {
+            String label = searchableLabel(node);
+            int score = matchScore(wanted, normalize(label));
+            if (score <= bestScore) continue;
+            AccessibilityNodeInfo clickable = clickableTarget(node);
+            if (clickable != null) {
+                best = clickable;
+                bestScore = score;
             }
         }
-        return false;
+        if (best == null) return false;
+        final AccessibilityNodeInfo target = best;
+        String label = nodeLabel(target);
+        if (!confirmed && isRiskyLabel(label)) {
+            final String requestedText = text;
+            requestConfirmation("tap " + label, () -> tapTextInternal(requestedText, longClick, true));
+            return true;
+        }
+        boolean done = target.performAction(longClick ? AccessibilityNodeInfo.ACTION_LONG_CLICK : AccessibilityNodeInfo.ACTION_CLICK);
+        if (!done) {
+            Rect bounds = new Rect();
+            target.getBoundsInScreen(bounds);
+            if (!bounds.isEmpty()) done = swipeTap(bounds.centerX(), bounds.centerY());
+        }
+        if (done) hideOverlays();
+        return done;
+    }
+
+    private void collectVisible(AccessibilityNodeInfo node, List<AccessibilityNodeInfo> out, int depth) {
+        if (node == null || depth > 25 || out.size() >= 500) return;
+        if (node.isVisibleToUser()) out.add(node);
+        for (int i = 0; i < node.getChildCount(); i++) collectVisible(node.getChild(i), out, depth + 1);
+    }
+
+    private AccessibilityNodeInfo clickableTarget(AccessibilityNodeInfo node) {
+        AccessibilityNodeInfo current = node;
+        int hops = 0;
+        while (current != null && hops++ < 6) {
+            if (current.isVisibleToUser() && (current.isClickable() || current.isFocusable())) return current;
+            current = current.getParent();
+        }
+        return null;
+    }
+
+    private String searchableLabel(AccessibilityNodeInfo node) {
+        if (node == null) return "";
+        StringBuilder value = new StringBuilder(nodeLabel(node));
+        if (node.getHintText() != null) value.append(' ').append(node.getHintText());
+        String viewId = node.getViewIdResourceName();
+        if (viewId != null) value.append(' ').append(viewId.replace('_', ' ').replace('/', ' '));
+        CharSequence pane = node.getPaneTitle();
+        if (pane != null) value.append(' ').append(pane);
+        return value.toString().trim();
+    }
+
+    private String normalize(String value) {
+        if (value == null) return "";
+        return value.toLowerCase(Locale.US).replaceAll("[^a-z0-9 ]", " ").trim().replaceAll("\\s+", " ");
+    }
+
+    private int matchScore(String wanted, String candidate) {
+        if (wanted.isEmpty() || candidate.isEmpty()) return 0;
+        if (candidate.equals(wanted)) return 100;
+        if (candidate.startsWith(wanted + " ") || candidate.endsWith(" " + wanted)) return 90;
+        if (candidate.contains(" " + wanted + " ") || candidate.contains(wanted)) return 80;
+        String[] words = wanted.split(" ");
+        int hits = 0;
+        for (String word : words) if (!word.isEmpty() && candidate.matches(".*\\b" + java.util.regex.Pattern.quote(word) + "\\b.*")) hits++;
+        if (hits == words.length && hits > 0) return 70 + Math.min(hits, 9);
+        return 0;
+    }
+
+    private boolean tapRegion(String region) {
+        if (region == null) return false;
+        float x, y;
+        switch (region) {
+            case "top_left": x = .17f; y = .17f; break;
+            case "top_center": x = .50f; y = .17f; break;
+            case "top_right": x = .83f; y = .17f; break;
+            case "center_left": x = .17f; y = .50f; break;
+            case "center": x = .50f; y = .50f; break;
+            case "center_right": x = .83f; y = .50f; break;
+            case "bottom_left": x = .17f; y = .83f; break;
+            case "bottom_center": x = .50f; y = .83f; break;
+            case "bottom_right": x = .83f; y = .83f; break;
+            default: return false;
+        }
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int px = (int)(metrics.widthPixels * x);
+        int py = (int)(metrics.heightPixels * y);
+        String label = labelAt(px, py);
+        if (isRiskyLabel(label)) {
+            final int fx = px, fy = py;
+            requestConfirmation("tap " + label, () -> swipeTap(fx, fy));
+            return true;
+        }
+        hideOverlays();
+        return swipeTap(px, py);
+    }
+
+    private boolean focusField(String kind) {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) return false;
+        List<AccessibilityNodeInfo> all = new ArrayList<>();
+        collectVisible(root, all, 0);
+        AccessibilityNodeInfo best = null;
+        int bestScore = Integer.MIN_VALUE;
+        boolean search = "search".equals(kind);
+        for (AccessibilityNodeInfo node : all) {
+            boolean editable = node.isEditable();
+            String cls = node.getClassName() == null ? "" : node.getClassName().toString().toLowerCase(Locale.US);
+            if (!editable && !cls.contains("edittext") && !node.isFocusable()) continue;
+            String label = normalize(searchableLabel(node));
+            int score = 0;
+            if (editable) score += 40;
+            if (cls.contains("edittext")) score += 30;
+            if (node.isFocusable()) score += 10;
+            if (search) {
+                if (label.contains("search")) score += 100;
+                else score -= 20;
+            } else {
+                if (label.contains("message") || label.contains("comment") || label.contains("text") || label.contains("type") || label.contains("reply")) score += 45;
+                if (label.contains("search")) score -= 60;
+            }
+            Rect bounds = new Rect();
+            node.getBoundsInScreen(bounds);
+            if (bounds.isEmpty()) continue;
+            if (score > bestScore) { bestScore = score; best = node; }
+        }
+        if (best == null) return false;
+        boolean done = best.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+        if (!done) done = best.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        if (!done) {
+            Rect bounds = new Rect();
+            best.getBoundsInScreen(bounds);
+            done = !bounds.isEmpty() && swipeTap(bounds.centerX(), bounds.centerY());
+        }
+        return done;
     }
 
     private boolean typeText(String value) {
